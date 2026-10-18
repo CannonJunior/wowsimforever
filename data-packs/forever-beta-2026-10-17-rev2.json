@@ -1,0 +1,83 @@
+{
+  "version": "forever-beta-2026-10-17-rev2",
+  "game_build_reference": "RECONSTRUCTED 2026-10-17 for diffability: this file is not a fresh fetch, it is this project's REV2 data pack state reconstructed faithfully from docs/PLAN.md's own prose record of it, after REV2 was overwritten in place by REV3 rather than saved as a separate file -- a process gap fixed going forward (see CLAUDE.md's data-pack versioning convention). REV2's own history: corrected REV1's Wowhead-tooltip-widget extraction errors via multiple independent WebSearch passes (which themselves later turned out to be wrong for Shadow Bolt/Shadowburn -- see REV3). Primary sources: (1) Kaivax Blizzard dev notes, us.forums.blizzard.com thread 2360696 post #6 -- does not mention Warlock spell coefficients, Demonic Sacrifice, or Demonic Pact. (2) Official Blizzard blue post 'World of Warcraft: Forever Class Deep Dives -- Rogue and Warlock', mirrored by Wowhead's Blue Tracker -- confirmed the Demonic Sacrifice/Demonic Pact rule this pack had already adopted.",
+  "spells": [
+    {
+      "id": "corruption",
+      "name": "Corruption",
+      "school": "shadow",
+      "cast_time_ms": 2000,
+      "cooldown_ms": 0,
+      "resource_cost": 290.0,
+      "base_min": 0.0,
+      "base_max": 0.0,
+      "coefficient": 0.0,
+      "dot": { "tick_interval_ms": 3000, "num_ticks": 6, "tick_base": 58.0, "tick_coefficient": 0.2, "can_crit": false },
+      "confidence": "community-reported",
+      "source": { "name": "UNRESOLVED CONFLICT (as of REV2): original Wowhead-forever fetch (spell=11672) gave 58/tick (348 total/18s); a later WebSearch pass gave 'Rank 7: 438 over 18s' and, in the same answer, 'level 60: 324 over 18s' for a DIFFERENT spell ID (172). Kept as-is pending verification. (REV3 resolved this via thewowdb.com: the real value is 73/tick, 340 mana.)", "url": "https://www.wowhead.com/forever/spell=11672/corruption" }
+    },
+    {
+      "id": "immolate",
+      "name": "Immolate",
+      "school": "fire",
+      "cast_time_ms": 2000,
+      "cooldown_ms": 0,
+      "resource_cost": 25.0,
+      "base_min": 158.0,
+      "base_max": 158.0,
+      "coefficient": 0.2,
+      "dot": { "tick_interval_ms": 3000, "num_ticks": 5, "tick_base": 55.0, "tick_coefficient": 0.13, "can_crit": false },
+      "confidence": "community-reported",
+      "source": { "name": "CORRECTED in REV2 from REV1's implausible 9 direct / 4 per tick (almost certainly an extraction error) via a WebSearch pass. Mana cost (25) was never re-checked at this point and was still wrong. (REV3 corrected mana to 380 via thewowdb.com; base values turned out to already be correct by coincidence.)", "url": "https://www.wowhead.com/forever/spell=348/immolate" }
+    },
+    {
+      "id": "shadow_bolt",
+      "name": "Shadow Bolt",
+      "school": "shadow",
+      "cast_time_ms": 3000,
+      "cooldown_ms": 0,
+      "resource_cost": 370.0,
+      "base_min": 246.0,
+      "base_max": 274.0,
+      "coefficient": 0.857,
+      "dot": null,
+      "confidence": "community-reported",
+      "source": { "name": "CORRECTED in REV2 from REV1's single flat value (252) via two independent WebSearch passes both returning '246 to 274'. (REV3 found this range was itself wrong via thewowdb.com's direct client-data citation: the real value is a flat 251, no range at all.)", "url": "https://www.wowhead.com/forever/spell=11661/shadow-bolt" }
+    },
+    {
+      "id": "shadowburn",
+      "name": "Shadowburn",
+      "school": "shadow",
+      "cast_time_ms": 0,
+      "cooldown_ms": 15000,
+      "resource_cost": 105.0,
+      "base_min": 65.0,
+      "base_max": 74.0,
+      "coefficient": 0.429,
+      "dot": null,
+      "confidence": "community-reported",
+      "source": { "name": "CORRECTED in REV2 from REV1's single flat value (67) via two independent WebSearch passes both returning '65 to 74'. (REV3 found this range was itself wrong via thewowdb.com: the real value is a flat 266, no range at all, and mana was still wrong at 105 instead of 365.)", "url": "https://www.wowhead.com/forever/spell=17877/shadowburn" }
+    }
+  ],
+  "demonic_sacrifice_effects": [
+    { "pet_type": "imp", "shadow_damage_pct": 0.15, "fire_damage_pct": 0.0, "mana_regen_pct_per_tick": 0.0, "health_regen_pct_per_tick": 0.0, "confidence": "community-reported", "source": { "name": "classicwowforever.com: Demonic Sacrifice tooltip", "url": "https://classicwowforever.com/talents/warlock/" } },
+    { "pet_type": "succubus", "shadow_damage_pct": 0.0, "fire_damage_pct": 0.15, "mana_regen_pct_per_tick": 0.0, "health_regen_pct_per_tick": 0.0, "confidence": "community-reported", "source": { "name": "classicwowforever.com: Demonic Sacrifice tooltip", "url": "https://classicwowforever.com/talents/warlock/" } },
+    { "pet_type": "voidwalker", "shadow_damage_pct": 0.0, "fire_damage_pct": 0.0, "mana_regen_pct_per_tick": 0.02, "health_regen_pct_per_tick": 0.0, "confidence": "community-reported", "source": { "name": "classicwowforever.com: Demonic Sacrifice tooltip", "url": "https://classicwowforever.com/talents/warlock/" } },
+    { "pet_type": "felhunter", "shadow_damage_pct": 0.0, "fire_damage_pct": 0.0, "mana_regen_pct_per_tick": 0.0, "health_regen_pct_per_tick": 0.03, "confidence": "community-reported", "source": { "name": "classicwowforever.com: Demonic Sacrifice tooltip", "url": "https://classicwowforever.com/talents/warlock/" } }
+  ],
+  "disputed_mechanics": [
+    {
+      "id": "demonic_sacrifice_x_demonic_pact",
+      "name": "Demonic Sacrifice interaction with Demonic Pact",
+      "description": "Resolved by a primary source during REV2: an official Blizzard blue post, 'World of Warcraft: Forever Class Deep Dives -- Rogue and Warlock', confirmed the pact_exempts_different_pet_only rule word-for-word.",
+      "candidate_rules": [
+        { "id": "pact_exempts_different_pet_only", "label": "Demonic Pact exempts a different-pet resummon only; resummoning the sacrificed pet still cancels it", "source": { "name": "Official Blizzard blue post (via Wowhead Blue Tracker)", "url": null }, "description": "Confirmed Demonic Pact tooltip.", "confidence": "dev-blue-post" },
+        { "id": "pact_exempts_any_resummon", "label": "Demonic Pact exempts any resummon, including the sacrificed pet itself", "source": { "name": "andycarlson13/foreversims README", "url": null }, "description": "Original framing, now contradicted by the primary source.", "confidence": "community-reported" }
+      ],
+      "default_rule_id": "pact_exempts_different_pet_only"
+    }
+  ],
+  "dispute_ledger": [
+    { "mechanic_id": "demonic_sacrifice_x_demonic_pact", "owner": "resolved -- no longer needs an owner", "falsifiable_test": "RESOLVED via a primary source during REV2.", "target_resolution_date": "resolved 2026-10-17", "status": "resolved" }
+  ]
+}

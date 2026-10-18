@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "id": "example_placeholder_staff",
+      "name": "EXAMPLE PLACEHOLDER -- not a real item, do not use for real builds",
+      "slot": "weapon",
+      "spell_power": 120.0,
+      "crit_chance_pct": 0.0,
+      "confidence": "placeholder",
+      "source": { "name": "Synthetic example -- not sourced from anywhere.", "url": null }
+    },
+    {
+      "id": "example_placeholder_ring",
+      "name": "EXAMPLE PLACEHOLDER -- not a real item, do not use for real builds",
+      "slot": "finger",
+      "spell_power": 40.0,
+      "crit_chance_pct": 0.0,
+      "confidence": "placeholder",
+      "source": { "name": "Synthetic example -- not sourced from anywhere.", "url": null }
+    },
+    {
+      "id": "example_placeholder_trinket",
+      "name": "EXAMPLE PLACEHOLDER -- not a real item, do not use for real builds",
+      "slot": "trinket",
+      "spell_power": 0.0,
+      "crit_chance_pct": 2.0,
+      "confidence": "placeholder",
+      "source": { "name": "Synthetic example -- not sourced from anywhere.", "url": null }
+    }
+  ]
+}

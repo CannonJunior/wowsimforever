@@ -1,0 +1,19 @@
+[package]
+name = "wowforever-cli"
+version = "0.1.0"
+edition.workspace = true
+
+[[bin]]
+name = "forever-sim"
+path = "src/main.rs"
+
+[dependencies]
+wowforever-data = { path = "../data" }
+wowforever-engine = { path = "../engine" }
+wowforever-storage = { path = "../storage" }
+wowforever-burst = { path = "../burst" }
+wowforever-recommend = { path = "../recommend" }
+wowforever-raid = { path = "../raid" }
+wowforever-heal = { path = "../heal" }
+wowforever-gear = { path = "../gear" }
+serde_json = { workspace = true }

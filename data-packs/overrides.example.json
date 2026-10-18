@@ -1,0 +1,23 @@
+{
+  "version": "overrides-example",
+  "game_build_reference": "N/A -- this file exists only to exercise the --overrides mechanism (see CLAUDE.md). Never used unless explicitly passed with --overrides on the command line.",
+  "spells": [
+    {
+      "id": "example_placeholder_nuke",
+      "name": "EXAMPLE PLACEHOLDER -- not a real spell, do not use for real builds",
+      "school": "shadow",
+      "cast_time_ms": 1500,
+      "cooldown_ms": 0,
+      "resource_cost": 0.0,
+      "base_min": 1.0,
+      "base_max": 1.0,
+      "coefficient": 0.01,
+      "dot": null,
+      "confidence": "placeholder",
+      "source": { "name": "Synthetic example -- not sourced from anywhere.", "url": null }
+    }
+  ],
+  "demonic_sacrifice_effects": [],
+  "disputed_mechanics": [],
+  "dispute_ledger": []
+}

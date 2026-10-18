@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WoW Forever Talent Calculator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><text y=%2224%22 font-size=%2224%22>📖</text></svg>">
+<style>
+  :root {
+    --bg: #15151b; --panel: #1e1e27; --border: #33333f; --text: #e6e6ee; --muted: #9797a8;
+    --accent: #5b8cff; --cell-bg: #26262f; --cell-locked: #1a1a21; --cell-border: #3a3a46;
+    --gold: #d9a224; --tier-amber: #d9a224; --tier-red: #e0453f;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 20px 24px 60px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; max-width: 900px; }
+  .warn { background: #3a1f1f; border: 1px solid var(--tier-red); border-radius: 6px; padding: 8px 10px; margin: 10px 0; font-size: 13px; max-width: 900px; }
+  .note { background: #262016; border: 1px solid var(--tier-amber); border-radius: 6px; padding: 8px 10px; margin: 10px 0; font-size: 13px; max-width: 900px; }
+
+  .class-row { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+  .class-btn { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 12px; color: var(--muted); }
+  .class-btn img { width: 20px; height: 20px; border-radius: 3px; }
+  .class-btn.active { border-color: var(--accent); color: var(--text); background: #222230; }
+  .class-btn.unavailable { opacity: .45; cursor: not-allowed; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; max-width: 1200px; }
+  .budget { font-size: 14px; }
+  .budget strong { color: var(--text); font-size: 18px; }
+  .actions button, .actions select { font-size: 12px; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--border); background: #2a2a35; color: var(--text); cursor: pointer; margin-left: 6px; }
+  .actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .actions button:hover { filter: brightness(1.15); }
+
+  .trees { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 16px; max-width: 1200px; }
+  .tree-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .tree-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .tree-head .name { font-weight: 700; font-size: 14px; }
+  .tree-head .pts { font-size: 13px; color: var(--gold); font-weight: 700; }
+  .tree-head button { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; font-size: 11px; cursor: pointer; padding: 2px 6px; }
+  .tree-head button:hover { color: var(--text); border-color: var(--accent); }
+
+  .tree-grid { display: grid; grid-template-rows: repeat(7, 58px); grid-template-columns: repeat(4, 58px); gap: 6px; position: relative; }
+  .gate-row { position: absolute; left: -10px; width: calc(100% + 20px); border-top: 1px dashed var(--border); font-size: 10px; color: var(--muted); padding-top: 2px; pointer-events: none; }
+
+  .cell {
+    width: 54px; height: 54px; border-radius: 6px; border: 2px solid var(--cell-border);
+    background: var(--cell-locked); position: relative; cursor: default; user-select: none;
+  }
+  .cell.exists { cursor: pointer; background: var(--cell-bg); }
+  .cell.exists.available { border-color: #4a4a58; }
+  .cell.exists.ranked { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .cell.exists.maxed { border-color: #ffd76b; box-shadow: 0 0 6px #ffd76b inset; }
+  .cell img { width: 100%; height: 100%; border-radius: 4px; display: block; filter: grayscale(0); }
+  .cell.locked img { filter: grayscale(1) brightness(.5); }
+  .cell .rank {
+    position: absolute; bottom: -2px; right: -2px; background: #0c0c10; color: var(--text);
+    font-size: 10px; font-weight: 700; padding: 1px 4px; border-radius: 3px; border: 1px solid var(--cell-border);
+    font-variant-numeric: tabular-nums;
+  }
+  .cell.maxed .rank { color: #ffd76b; }
+  .cell .req-badge {
+    position: absolute; top: -2px; left: -2px; background: #0c0c10; color: var(--muted);
+    font-size: 9px; padding: 0 3px; border-radius: 3px; border: 1px solid var(--cell-border);
+  }
+
+  #tip {
+    position: fixed; display: none; max-width: 300px; background: #0c0c10; border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; font-size: 12px; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  }
+  #tip b { color: var(--text); font-size: 13px; }
+  #tip .tt-meta { color: var(--muted); font-size: 11px; margin: 2px 0 6px; }
+  #tip .tt-rank { margin: 3px 0; }
+  #tip .tt-rank.current { color: var(--gold); }
+  #tip .tt-flag { display: inline-block; margin-top: 6px; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #2a2a35; color: var(--muted); }
+
+  .builds-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 18px; max-width: 1200px; }
+  .builds-panel h2 { font-size: 13px; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .builds-panel table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .builds-panel td, .builds-panel th { padding: 5px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+  .builds-panel button.small { font-size: 11px; padding: 3px 8px; }
+
+  .sim-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 18px; max-width: 1200px; }
+  .sim-panel h2 { font-size: 13px; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .stat { font-size: 26px; font-weight: 700; }
+  .stat-row { display: flex; gap: 18px; margin: 8px 0 10px; flex-wrap: wrap; }
+  .stat-row div { font-size: 12px; color: var(--muted); }
+  code { background: #2a2a35; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: 8px 0 14px; }
+  .tab-btn {
+    background: transparent; border: none; border-radius: 6px 6px 0 0; color: var(--muted);
+    padding: 7px 14px; font-size: 13px; cursor: pointer; margin: 0;
+  }
+  .tab-btn.active { background: #28283a; color: var(--text); font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .ability-bar-track { background: #26262f; border-radius: 3px; height: 6px; width: 100%; overflow: hidden; }
+  .ability-bar-fill { height: 100%; border-radius: 3px; }
+  .ability-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .timeline-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: #181820; }
+  .timeline-axis { position: relative; height: 22px; border-bottom: 1px solid var(--border); font-size: 10px; color: var(--muted); }
+  .timeline-axis span { position: absolute; top: 4px; transform: translateX(-50%); }
+  .timeline-row { position: relative; height: 28px; border-bottom: 1px solid #22222c; display: flex; align-items: center; }
+  .timeline-row-label { position: sticky; left: 0; width: 140px; flex: 0 0 140px; padding: 0 8px; font-size: 11px; color: var(--muted); background: #181820; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+  .timeline-row-track { position: relative; flex: 1; height: 100%; min-width: 600px; }
+  .timeline-mark {
+    position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%;
+    transform: translate(-50%, -50%); cursor: default;
+  }
+  .timeline-mark.crit { width: 10px; height: 10px; box-shadow: 0 0 4px 1px currentColor; }
+  .buff-row { margin-bottom: 10px; }
+  .buff-row-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .buff-track { position: relative; height: 16px; background: #26262f; border-radius: 4px; overflow: hidden; }
+  .buff-fill { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .7; }
+</style>
+</head>
+<body>
+  <h1>WoW Forever Talent Calculator</h1>
+  <div class="sub">
+    Select talents, save builds, and run them through the simulator (<a href="./index.html">back to simulator</a>).
+    Point allocation, tier gating, and prerequisites are real and enforced -- left-click a cell to add a point, right-click to remove one.
+  </div>
+
+  <div class="class-row" id="classRow"></div>
+
+  <div id="noDataWarning" class="warn" style="display:none;"></div>
+
+  <div id="calcArea" style="display:none;">
+    <div class="top-bar">
+      <div class="budget">Points spent: <strong id="totalSpent">0</strong> / <span id="totalBudget">51</span></div>
+      <div class="actions">
+        <button id="resetAllBtn">Reset all</button>
+        <select id="loadSelect"><option value="">Load saved build...</option></select>
+        <button id="saveBtn" class="primary">Save build</button>
+      </div>
+    </div>
+
+    <div class="trees" id="treesArea"></div>
+
+    <div class="note" id="dataNote"></div>
+
+    <div class="sim-panel">
+      <h2>Run this build through the simulator</h2>
+      <div class="sub" id="simDescription" style="margin:0 0 8px;"></div>
+      <button class="primary" id="runSimBtn">Run</button>
+      <div class="tabs" id="resultTabs" style="display:none;">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="abilities">Abilities</button>
+        <button class="tab-btn" data-tab="timeline">Timeline</button>
+        <button class="tab-btn" data-tab="buffs">Buffs &amp; Debuffs</button>
+      </div>
+      <div class="tab-panel active" id="tab-overview">
+        <div id="simResult" style="margin-top:10px;"></div>
+      </div>
+      <div class="tab-panel" id="tab-abilities">
+        <div id="abilitiesArea"></div>
+      </div>
+      <div class="tab-panel" id="tab-timeline">
+        <div id="timelineArea"></div>
+      </div>
+      <div class="tab-panel" id="tab-buffs">
+        <div id="buffsArea"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="builds-panel">
+    <h2>Saved builds</h2>
+    <table id="savedTable">
+      <thead><tr><th>Name</th><th>Class</th><th>Points</th><th>Saved</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="tip"></div>
+
+  <script type="module">
+    import init, { simulate_dps, simulate_heal, simulate_dps_detail, simulate_hps_detail } from './pkg/wowforever.js';
+    import {
+      CLASS_LABELS, CLASS_ICONS, CLASS_SIM, DATA_PACK_PATH, getSavedBuilds, setSavedBuilds,
+      buildSimConfig,
+    } from './talent-builds.js';
+
+    const ICON_BASE = 'https://wow.zamimg.com/images/wow/icons/large/';
+    const CLASSES = Object.keys(CLASS_LABELS).map((id) => ({ id, label: CLASS_LABELS[id], icon: CLASS_ICONS[id] }));
+
+    let currentClass = 'warlock';
+    let talentData = null;       // raw fetched data for the current class
+    let talentsById = {};
+    let allocation = {};         // talent id -> current rank
+    let dataPackRaw = null;
+
+    function pointsInTree(tree) {
+      let sum = 0;
+      for (const t of talentData.talents) if (t.tree === tree) sum += (allocation[t.id] || 0);
+      return sum;
+    }
+    function totalPoints() {
+      return Object.values(allocation).reduce((a, b) => a + b, 0);
+    }
+    function isUnlocked(t) {
+      if (pointsInTree(t.tree) < t.requires_tree_points) return false;
+      if (t.requires_talent_id) {
+        const req = talentsById[t.requires_talent_id];
+        if (!req || (allocation[req.id] || 0) < req.max_rank) return false;
+      }
+      return true;
+    }
+    function canAdd(t) {
+      const rank = allocation[t.id] || 0;
+      if (rank >= t.max_rank) return false;
+      if (totalPoints() >= talentData.total_points_at_max_level) return false;
+      return isUnlocked(t);
+    }
+    function canRemove(t) {
+      return (allocation[t.id] || 0) > 0;
+    }
+
+    function cellClasses(t) {
+      const rank = allocation[t.id] || 0;
+      const unlocked = isUnlocked(t);
+      let cls = 'cell exists';
+      if (!unlocked) cls += ' locked';
+      else cls += ' available';
+      if (rank > 0) cls += ' ranked';
+      if (rank >= t.max_rank) cls += ' maxed';
+      return cls;
+    }
+
+    function renderTrees() {
+      const area = document.getElementById('treesArea');
+      area.innerHTML = '';
+      document.getElementById('totalSpent').textContent = totalPoints();
+      document.getElementById('totalBudget').textContent = talentData.total_points_at_max_level;
+
+      for (const tree of talentData.trees) {
+        const panel = document.createElement('div');
+        panel.className = 'tree-panel';
+        const spent = pointsInTree(tree);
+        panel.innerHTML = `<div class="tree-head"><span class="name">${tree}</span><span class="pts">${spent}</span></div>`;
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = 'Reset';
+        resetBtn.title = `Reset ${tree}`;
+        resetBtn.addEventListener('click', () => {
+          for (const t of talentData.talents) if (t.tree === tree) delete allocation[t.id];
+          renderTrees();
+        });
+        panel.querySelector('.tree-head').appendChild(resetBtn);
+
+        const grid = document.createElement('div');
+        grid.className = 'tree-grid';
+        for (const t of talentData.talents.filter((x) => x.tree === tree)) {
+          const cell = document.createElement('div');
+          cell.className = cellClasses(t);
+          cell.style.gridRow = t.row;
+          cell.style.gridColumn = t.col;
+          const rank = allocation[t.id] || 0;
+          const reqBadge = t.requires_tree_points > 0 && pointsInTree(tree) < t.requires_tree_points
+            ? `<span class="req-badge">${t.requires_tree_points}</span>` : '';
+          cell.innerHTML = `<img src="${ICON_BASE}${t.icon}.jpg" alt="${t.name}" onerror="this.src='${ICON_BASE}inv_misc_questionmark.jpg'">
+            <span class="rank">${rank}/${t.max_rank}</span>${reqBadge}`;
+          cell.addEventListener('click', () => { if (canAdd(t)) { allocation[t.id] = rank + 1; renderTrees(); } });
+          cell.addEventListener('contextmenu', (e) => { e.preventDefault(); if (canRemove(t)) { allocation[t.id] = rank - 1; if (!allocation[t.id]) delete allocation[t.id]; renderTrees(); } });
+          cell.addEventListener('mouseenter', (e) => showTip(e, t));
+          cell.addEventListener('mousemove', (e) => positionTip(e));
+          cell.addEventListener('mouseleave', hideTip);
+          grid.appendChild(cell);
+        }
+        panel.appendChild(grid);
+        area.appendChild(panel);
+      }
+    }
+
+    function showTip(e, t) {
+      const tip = document.getElementById('tip');
+      const rank = allocation[t.id] || 0;
+      let ranksHtml = t.rank_descriptions.map((d, i) => {
+        const rn = i + 1;
+        const cls = rn === rank + 1 ? 'tt-rank current' : (rn <= rank ? 'tt-rank' : 'tt-rank');
+        const marker = rn === rank + 1 ? '&rarr; ' : '';
+        return `<div class="${cls}">${marker}Rank ${rn}: ${d}</div>`;
+      }).join('');
+      const reqBits = [];
+      if (t.requires_tree_points > 0) reqBits.push(`${t.requires_tree_points} points in ${t.tree}`);
+      if (t.requires_talent) reqBits.push(`${t.requires_talent} (max rank)`);
+      const reqHtml = reqBits.length ? `<div class="tt-meta">Requires: ${reqBits.join(', ')}</div>` : '';
+      const flagLabel = { 'new': 'New in Forever', 'changed': 'Changed from Classic', 'moved': 'Moved, same effect', 'same': 'Same as Classic' };
+      const flagKey = (t.status_vs_classic || '').split(' ').pop();
+      tip.innerHTML = `<b>${t.name}</b><div class="tt-meta">${t.tree} &middot; ${t.kind} &middot; ${t.max_rank} rank${t.max_rank > 1 ? 's' : ''}</div>${reqHtml}${ranksHtml}<div class="tt-flag">${flagLabel[flagKey] || ''}</div>${!t.icon_verified ? '<div class="tt-flag" style="background:#3a1f1f;">icon not verified -- placeholder</div>' : ''}`;
+      tip.style.display = 'block';
+      positionTip(e);
+    }
+    function positionTip(e) {
+      const tip = document.getElementById('tip');
+      const pad = 16;
+      let x = e.clientX + pad, y = e.clientY + pad;
+      if (x + 310 > window.innerWidth) x = e.clientX - 310 - pad;
+      if (y + 200 > window.innerHeight) y = e.clientY - 200;
+      tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    }
+    function hideTip() { document.getElementById('tip').style.display = 'none'; }
+
+    function renderClassRow() {
+      const row = document.getElementById('classRow');
+      row.innerHTML = '';
+      for (const c of CLASSES) {
+        const btn = document.createElement('div');
+        btn.className = 'class-btn' + (c.id === currentClass ? ' active' : '');
+        btn.innerHTML = `<img src="${ICON_BASE}${c.icon}.jpg" alt="${c.label}">${c.label}`;
+        btn.addEventListener('click', () => selectClass(c.id));
+        row.appendChild(btn);
+      }
+    }
+
+    async function selectClass(classId) {
+      currentClass = classId;
+      renderClassRow();
+      const cls = CLASSES.find((c) => c.id === classId);
+      const area = document.getElementById('calcArea');
+      document.getElementById('noDataWarning').style.display = 'none';
+      area.style.display = 'block';
+      allocation = {};
+      const resp = await fetch(`/data-packs/talents.${classId}.json`);
+      talentData = await resp.json();
+      talentsById = {};
+      for (const t of talentData.talents) talentsById[t.id] = t;
+      document.getElementById('dataNote').textContent =
+        `Data confidence: community-reported (thewowdb.com was unreachable during sourcing -- see this file's own source_note). ` +
+        `${talentData.talents.filter(t => !t.icon_verified).length} of ${talentData.talents.length} icons are unverified placeholders.`;
+      renderTrees();
+      renderSavedBuilds();
+      renderSimPanel();
+    }
+
+    function renderSimPanel() {
+      const cls = CLASSES.find((c) => c.id === currentClass);
+      const sim = CLASS_SIM[cls.id];
+      const desc = document.getElementById('simDescription');
+      const btn = document.getElementById('runSimBtn');
+      document.getElementById('simResult').innerHTML = '';
+      setResultTabsVisible(false);
+      if (!sim.mode) {
+        desc.innerHTML = `<strong>Not available for ${cls.label}:</strong> ${sim.reason}`;
+        btn.disabled = true;
+        btn.style.display = 'none';
+        return;
+      }
+      btn.disabled = false;
+      btn.style.display = '';
+      btn.textContent = sim.mode === 'heal' ? 'Run HPS' : 'Run DPS';
+      const effectIds = Object.keys(sim.talentEffects);
+      const effectNote = effectIds.length
+        ? `<strong>Only ${effectIds.map((id) => talentsById[id]?.name || id).join(' and ')} currently feed into the simulation</strong> -- the rest of this build's points are tracked for planning only.`
+        : `<strong>No talents in this tree currently feed into the simulation</strong> -- this engine hasn't mechanically modeled any ${cls.label} talent yet, so this shows baseline ${cls.label} output for the demo rotation regardless of your allocation, stated honestly rather than implied otherwise.`;
+      const rotationDesc = sim.melee
+        ? `auto-attack (${sim.melee.weaponMin}-${sim.melee.weaponMax} weapon damage, ${sim.melee.weaponSpeedMs}ms speed, ${sim.melee.attackPower} attack power)${sim.rotation.length ? ' + ' + sim.rotation.join(' / ') : ''}`
+        : `${sim.rotation.join(' / ')} at 350 spell power`;
+      const meleeWarn = sim.note ? `<div class="warn" style="margin-bottom:8px;"><strong>⚠ Partial model:</strong> ${sim.note}</div>` : '';
+      desc.innerHTML = `${meleeWarn}Uses the ${cls.label} demo rotation (${rotationDesc}), 20% crit, 60s. ${effectNote}
+        This build is also loadable from <a href="./index.html">the simulator's build selector</a>${sim.hasBurst ? ' (including the burst calculator)' : ''} once saved.`;
+    }
+
+    document.getElementById('resetAllBtn').addEventListener('click', () => { allocation = {}; renderTrees(); });
+    function renderSavedBuilds() {
+      const tbody = document.querySelector('#savedTable tbody');
+      tbody.innerHTML = '';
+      const loadSelect = document.getElementById('loadSelect');
+      loadSelect.innerHTML = '<option value="">Load saved build...</option>';
+      const builds = getSavedBuilds();
+      builds.forEach((b, i) => {
+        const pts = Object.values(b.allocation).reduce((a, c) => a + c, 0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${b.name}</td><td>${b.classId}</td><td>${pts}</td><td>${new Date(b.savedAt).toLocaleString()}</td><td></td>`;
+        const delBtn = document.createElement('button');
+        delBtn.className = 'small'; delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => { builds.splice(i, 1); setSavedBuilds(builds); renderSavedBuilds(); });
+        tr.lastElementChild.appendChild(delBtn);
+        tbody.appendChild(tr);
+
+        if (b.classId === currentClass) {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.textContent = `${b.name} (${pts} pts)`;
+          loadSelect.appendChild(opt);
+        }
+      });
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const name = prompt('Name this build:', `${currentClass} build`);
+      if (!name) return;
+      const builds = getSavedBuilds();
+      builds.push({ name, classId: currentClass, allocation: { ...allocation }, savedAt: Date.now() });
+      setSavedBuilds(builds);
+      renderSavedBuilds();
+    });
+    document.getElementById('loadSelect').addEventListener('change', (e) => {
+      const idx = e.target.value;
+      if (idx === '') return;
+      const b = getSavedBuilds()[Number(idx)];
+      if (b && b.classId === currentClass) {
+        allocation = { ...b.allocation };
+        renderTrees();
+      }
+    });
+
+    // Stable color per ability/auto-attack source id, shared by the
+    // Abilities table's swatches and the Timeline's per-row marks so the
+    // same ability reads as the same color in both views. Mirrors
+    // index.html's copy exactly -- see that file if this ever needs to
+    // move into talent-builds.js to de-duplicate.
+    const SOURCE_COLORS = ['#5b8cff', '#e0453f', '#2fae5a', '#d9a224', '#b45bff', '#22a2a2', '#ff8a5b', '#5bd1ff', '#ff5ba3'];
+    const sourceColorCache = {};
+    function colorFor(sourceId) {
+      if (!(sourceId in sourceColorCache)) {
+        sourceColorCache[sourceId] = SOURCE_COLORS[Object.keys(sourceColorCache).length % SOURCE_COLORS.length];
+      }
+      return sourceColorCache[sourceId];
+    }
+    function labelFor(sourceId, kind) {
+      const name = sourceId === 'auto_attack' ? 'Auto Attack' : sourceId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      return kind === 'tick' ? `${name} (tick)` : name;
+    }
+
+    function setResultTabsVisible(visible) {
+      document.getElementById('resultTabs').style.display = visible ? 'flex' : 'none';
+      if (!visible) {
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === 'overview'));
+        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-overview'));
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    function renderAbilities(detail) {
+      const area = document.getElementById('abilitiesArea');
+      if (!detail.abilities.length) {
+        area.innerHTML = `<em style="color:var(--muted)">No damage/healing events in this run.</em>`;
+        return;
+      }
+      const totalDamage = detail.abilities.reduce((a, ab) => a + ab.total_damage, 0);
+      const fightS = detail.fight_duration_ms / 1000;
+      const rows = detail.abilities.map((ab) => {
+        const share = totalDamage > 0 ? (ab.total_damage / totalDamage) * 100 : 0;
+        const critPct = ab.crit_eligible > 0 ? (ab.crits / ab.crit_eligible) * 100 : null;
+        return `
+          <tr>
+            <td><span class="ability-swatch" style="background:${colorFor(ab.source_id)}"></span>${labelFor(ab.source_id, ab.kind)}</td>
+            <td>${(ab.total_damage / fightS).toFixed(1)}</td>
+            <td style="min-width:90px;">
+              <div class="ability-bar-track"><div class="ability-bar-fill" style="width:${share.toFixed(1)}%; background:${colorFor(ab.source_id)}"></div></div>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">${share.toFixed(1)}%</div>
+            </td>
+            <td>${ab.casts}</td>
+            <td>${(ab.total_damage / ab.casts).toFixed(1)}</td>
+            <td>${critPct === null ? '—' : critPct.toFixed(1) + '%'}</td>
+          </tr>`;
+      }).join('');
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:8px;">One representative simulated run (seed-fixed), not an average across iterations -- real sim tools report these two things separately since you can't average "which rolls crit" into one coherent log. DPS/HPS and casts here are from this one run; the Overview tab's stats are the real Monte Carlo aggregate across 10,000 runs.</div>
+        <table>
+          <thead><tr><th>Ability</th><th>DPS</th><th>Share</th><th>Casts</th><th>Avg / Cast</th><th>Crit %</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderTimeline(detail) {
+      const area = document.getElementById('timelineArea');
+      if (!detail.events.length) {
+        area.innerHTML = `<em style="color:var(--muted)">No events in this run.</em>`;
+        return;
+      }
+      const fightMs = detail.fight_duration_ms;
+      const rowIds = detail.abilities.map((ab) => ({ id: ab.source_id, kind: ab.kind }));
+      const tickCount = Math.min(13, Math.ceil(fightMs / 10000) + 1);
+      const axisTicks = Array.from({ length: tickCount }, (_, i) => {
+        const t = Math.round((i / (tickCount - 1)) * fightMs);
+        return `<span style="left:${(t / fightMs) * 100}%">${Math.floor(t / 60000)}:${String(Math.floor((t % 60000) / 1000)).padStart(2, '0')}</span>`;
+      }).join('');
+
+      const rowsHtml = rowIds.map(({ id, kind }) => {
+        const marks = detail.events
+          .filter((e) => e.source_id === id && e.kind === kind)
+          .map((e) => {
+            const left = (e.time_ms / fightMs) * 100;
+            const color = colorFor(id);
+            return `<div class="timeline-mark${e.is_crit ? ' crit' : ''}" style="left:${left}%; background:${color}; color:${color};" title="${labelFor(id, kind)} @ ${(e.time_ms / 1000).toFixed(1)}s -- ${e.damage.toFixed(1)}${e.is_crit ? ' (crit)' : ''}"></div>`;
+          }).join('');
+        return `<div class="timeline-row"><div class="timeline-row-label"><span class="ability-swatch" style="background:${colorFor(id)}"></span>${labelFor(id, kind)}</div><div class="timeline-row-track">${marks}</div></div>`;
+      }).join('');
+
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:8px;">Same representative run as the Abilities tab. Hover a mark for its exact time and damage; larger marks are crits.</div>
+        <div class="timeline-wrap">
+          <div class="timeline-row"><div class="timeline-row-label"></div><div class="timeline-row-track timeline-axis">${axisTicks}</div></div>
+          ${rowsHtml}
+        </div>
+      `;
+    }
+
+    function renderBuffs(detail) {
+      const area = document.getElementById('buffsArea');
+      if (!detail.buffs.length) {
+        area.innerHTML = `<em style="color:var(--muted)">No buffs or debuffs are currently modeled for this build.</em>`;
+        return;
+      }
+      const fightMs = detail.fight_duration_ms;
+      const rows = detail.buffs.map((b) => {
+        const leftPct = (b.start_ms / fightMs) * 100;
+        const widthPct = ((b.end_ms - b.start_ms) / fightMs) * 100;
+        const uptimePct = ((b.end_ms - b.start_ms) / fightMs) * 100;
+        return `
+          <div class="buff-row">
+            <div class="buff-row-label"><span>${b.name}</span><span>${uptimePct.toFixed(0)}% uptime (${(b.start_ms/1000).toFixed(1)}s&ndash;${(b.end_ms/1000).toFixed(1)}s)</span></div>
+            <div class="buff-track"><div class="buff-fill" style="left:${leftPct}%; width:${widthPct}%;"></div></div>
+          </div>`;
+      }).join('');
+      area.innerHTML = `<div class="sub" style="margin-bottom:10px;">From the same representative run. This engine currently models exactly one such mechanic (Demonic Sacrifice) -- a build without it correctly shows nothing here, not a fabricated entry.</div>${rows}`;
+    }
+
+    document.getElementById('runSimBtn').addEventListener('click', () => {
+      const cls = CLASSES.find((c) => c.id === currentClass);
+      const sim = CLASS_SIM[cls.id];
+      if (!sim.mode) return;
+      setResultTabsVisible(false);
+      const build = buildSimConfig(cls.id, allocation);
+      const seed = 1;
+      const resultJson = sim.mode === 'heal'
+        ? simulate_heal(dataPackRaw, JSON.stringify(build), 10000, seed)
+        : simulate_dps(dataPackRaw, JSON.stringify(build), 10000, seed);
+      const result = JSON.parse(resultJson);
+      const area = document.getElementById('simResult');
+      if (!result.ok) { area.innerHTML = `<div class="warn">Error: ${result.error}</div>`; return; }
+      const unit = sim.mode === 'heal' ? 'HPS' : 'DPS';
+      const effectsHtml = Object.entries(sim.talentEffects)
+        .map(([id]) => `${talentsById[id]?.name || id}: ${(allocation[id] || 0) > 0 ? 'active' : 'not taken'}`)
+        .join(' &middot; ');
+      area.innerHTML = `
+        <div class="stat">${result.mean.toFixed(1)} ${unit}</div>
+        <div class="stat-row">
+          <div>stdev<br><strong style="color:var(--text)">${result.stdev.toFixed(1)}</strong></div>
+          <div>p5<br><strong style="color:var(--text)">${result.p5.toFixed(1)}</strong></div>
+          <div>p50<br><strong style="color:var(--text)">${result.p50.toFixed(1)}</strong></div>
+          <div>p95<br><strong style="color:var(--text)">${result.p95.toFixed(1)}</strong></div>
+        </div>
+        ${effectsHtml ? `<div class="sub">${effectsHtml}</div>` : ''}
+        <div class="sub">Data pack: <code>${result.data_pack_version}</code></div>
+      `;
+
+      // Same build, same seed -- one representative run's full detail,
+      // shown as a separate thing from the Monte Carlo summary above
+      // (see renderAbilities' own note for why these aren't reconciled).
+      const detailJson = sim.mode === 'heal'
+        ? simulate_hps_detail(dataPackRaw, JSON.stringify(build), seed)
+        : simulate_dps_detail(dataPackRaw, JSON.stringify(build), seed);
+      const detail = JSON.parse(detailJson);
+      if (detail.ok) {
+        renderAbilities(detail);
+        renderTimeline(detail);
+        renderBuffs(detail);
+        setResultTabsVisible(true);
+      }
+    });
+
+    async function main() {
+      await init();
+      const resp = await fetch(DATA_PACK_PATH);
+      dataPackRaw = await resp.text();
+      renderClassRow();
+      await selectClass('warlock');
+    }
+    main();
+  </script>
+</body>
+</html>

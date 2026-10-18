@@ -1,0 +1,342 @@
+{
+  "version": "forever-beta-2026-10-17-rev7",
+  "game_build_reference": "REV7 (2026-10-17): added one representative spell each for Druid (Moonfire), Shaman (Lightning Bolt), and Paladin (Holy Light) -- the three remaining WoW Forever classes whose kits include spell-power-scaling abilities this engine can represent. Hunter, Rogue, and Warrior are deliberately NOT added: in Classic-era itemization (which WoW Forever preserves -- no evidence of a change was found, and such a change would be a major, newsworthy design shift this project would have seen mentioned by now), these three classes deal 100% attack-power/weapon-damage-scaling damage, with zero spell-power-scaling abilities at all -- adding a data-pack entry for them would require fabricating a spell-power coefficient on an ability that doesn't actually scale that way in-game, which this project's no-placeholder/no-guessed-values rule forbids. Representing them honestly needs a different damage model entirely (attack power, weapon damage dice, armor mitigation, swing timers) -- a real, scoped future engineering investment, not a data-add, and out of scope for this pass. thewowdb.com, the direct-client-data source used for every `beta-datamine`-tier entry in this pack so far, returned a sustained HTTP 503 across 6 separate attempts (both via the ingest tool and direct fetch) throughout this session's sourcing pass for these three spells -- consistent with the transient rate-limiting this project has hit before, but this time it did not clear. All three entries below are therefore WebSearch-synthesized from multiple independent, named community sources and tagged `community-reported`, not `beta-datamine` -- an honest confidence downgrade from this pack's recent norm, not a quality claim. A follow-up direct thewowdb.com re-check, once reachable, should attempt to upgrade these. Moonfire's direct-damage range has a small (~4%) unresolved discrepancy between two independent search passes (124-146 vs. 129-150 Arcane) -- kept as the better-sourced figure (paired directly with the coefficient and spell id in the same source) with the alternate noted here rather than silently picked, per this project's established practice for exactly this kind of conflict (see Corruption's entry history in earlier revisions). Holy Light's coefficient (0.714) was not stated directly by any source found; it was derived from Classic's well-documented direct-effect coefficient formula (cast_time / 3.5, capped at 3.5s) applied to its sourced 2.5s cast time, and then cross-validated against Lightning Bolt's *independently* sourced coefficient (also 0.714, also a 2.5s-cast spell) -- two unrelated spells at the same cast tier agreeing is a real corroboration, consistent with this pack's earlier, unplanned finding that WoW Forever's coefficients cluster by cast-time/spell-shape tier rather than being assigned per-spell. Original sources, REV6 and earlier: REV6 (2026-10-17): Phase 3 (Plan Section 8) -- added the first sourced raid_debuffs entry, Warlock's Curse of the Elements, giving crates/raid a real cross-character synergy to model (one Warlock's curse increases every raid member's damage of the affected schools, not just the Warlock's own). Sourcing: thewowdb.com/wow-forever/changes/spells/warlock/ confirms the spell exists in WoW Forever as spell id 440892 (Rank 1) and explicitly quotes its Forever-beta tooltip template as 'Reduces Magic resistances by X and increases Magic damage taken by X%' (changed from Classic Era's 'Mark of Chaos' framing) -- also confirms Curse of Shadow is NOT a separate learnable spell in Forever (not listed on the Warlock changes page at all), consistent with community reporting that Curse of the Elements absorbed its coverage. thewowdb.com's own detail page for the max rank returned a transient HTTP 503 (the same rate-limiting this project has hit before under rapid sequential requests) before the exact numeric percentage could be read directly, so the max-rank value used here (10% magic damage taken, schools Shadow/Fire/Frost/Arcane) is sourced from WebSearch-synthesized reporting (wowforever.wclbox.com and corroborating sites quoting ranks 1-4 at 4/6/8/10%) rather than a direct thewowdb.com client-data read -- tagged community-reported, not beta-datamine, to reflect that honestly; a follow-up ingest pass against thewowdb.com's max-rank page once it's reachable again should upgrade this to beta-datamine. Schools affected are Shadow+Fire+Frost+Arcane (not Holy, not Physical): Fire/Frost/Arcane from the original Curse of the Elements, Shadow absorbed from the now-removed Curse of Shadow -- see raid_debuffs below. Original sources: (1) Kaivax Blizzard dev notes, us.forums.blizzard.com thread 2360696 post #6, posted 2026-10-16T00:15:00 (WoW Forever Beta Development Notes - Updated October 15) -- does not mention Warlock spell coefficients, Demonic Sacrifice, or Demonic Pact. (2) Official Blizzard blue post 'World of Warcraft: Forever Class Deep Dives -- Rogue and Warlock', mirrored by Wowhead's Blue Tracker, found 2026-10-17 -- CONFIRMS the exact Demonic Sacrifice/Demonic Pact rule this pack had already adopted as its best-sourced candidate (see disputed_mechanics and dispute_ledger below, now resolved). REV2 (2026-10-17): corrected after a user-identified methodology flaw -- single-pass Wowhead-tooltip-widget extraction (via an AI-summarized page fetch) was found to systematically collapse real min-max damage ranges into single, sometimes outright wrong, values (Immolate's original 9-direct-damage figure was almost certainly an extraction error, not real data -- see the Immolate entry's source note). Re-sourced via multiple independent WebSearch passes, which proved more reliable at preserving quoted ranges than fetching Wowhead's own rendered tooltip page. Confidence tags across this pack are demoted from the prior revision's `beta-datamine` to `community-reported` to reflect what these values actually are: web-research-synthesized, not self-extracted or primary-confirmed. See docs/PLAN.md's data-sourcing investigation and plan for the full writeup, including why Wowhead has no usable public API and why wago.tools (direct DB2 extraction) is the recommended path to real `beta-datamine`-tier confidence going forward. REV3 (2026-10-17): the REV2 WebSearch-synthesized ranges were themselves wrong. Found a genuinely structured source, thewowdb.com/wow-forever/ -- directly accessible (unlike Wowhead, which blocks plain HTTP with a 403), and each spell page states explicitly 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client, build 1.60.1.70450' with a consistent 'Effect #N ... Value: X Spell power coefficient: Y' structure across every spell checked. None of Shadow Bolt, Corruption, Immolate, Shadowburn, or Searing Pain (the user's own original example) show any die-sides/range field anywhere on their detail pages or in a full-text scan for an 'X to Y' pattern -- strong evidence WoW Forever's redesign gave these direct-damage caster spells flat, non-random base values, not Classic-style rolled ranges. Confidence raised to beta-datamine for every entry below, since this is genuine, consistently-formatted client-data extraction, not web-research synthesis -- still short of live-confirmed since this is beta, not live, data. REV4 (2026-10-17): added Mage (Fireball, Frostbolt) via crates/ingest against thewowdb.com, demonstrating the data pipeline generalizes beyond Warlock (Plan Section 7's 'remaining classes/specs'). Sourcing this also found and fixed a real bug in crates/ingest: thewowdb.com omits the 'It scales with N times spell power' clause entirely when an effect has zero scaling, rather than writing 'scales with 0' -- the original regex required that clause unconditionally and would have silently dropped Fireball's periodic burn component. Also required extending the School enum (crates/data) to add Frost and Arcane, previously Shadow/Fire/Physical only -- the compiler's exhaustiveness checking caught every site that needed updating (OpponentProfile's resist lookup, Demonic Sacrifice's school-boost lookup in both the engine and burst crates). REV5 (2026-10-17): added Priest healing spells (Flash Heal, Greater Heal, Renew) via crates/ingest, for crates/heal's healer-throughput model (Plan Section 8). Required extending crates/ingest to recognize the 'Heal (effect type 10)' client effect, previously only 'School Damage (effect type 2)' was matched -- same base-value/coefficient phrasing otherwise, so no new regex pattern needed, just a wider alternation. Also required extending School to add Holy (previously Shadow/Fire/Physical/Frost/Arcane) -- the second time this exact extend-then-fix-every-match-site cycle has happened, so OpponentProfile's resist fields (crates/burst) were given #[serde(default)] this time so the next school addition won't require hunting down every JSON call site again. Interesting, unplanned cross-validation: Flash Heal/Greater Heal/Renew's coefficients (0.429/0.857/0.2) exactly match Shadowburn/Shadow Bolt/Corruption's respective coefficients -- suggesting WoW Forever normalizes coefficients by cast-time/spell-shape tier (instant/burst, long-cast nuke, DoT-or-HoT-per-tick) rather than assigning them per-spell, which is consistent across every class sourced so far.",
+  "spells": [
+    {
+      "id": "corruption",
+      "name": "Corruption",
+      "school": "shadow",
+      "cast_time_ms": 2000,
+      "cooldown_ms": 0,
+      "resource_cost": 340.0,
+      "base_min": 0.0,
+      "base_max": 0.0,
+      "coefficient": 0.0,
+      "dot": {
+        "tick_interval_ms": 3000,
+        "num_ticks": 6,
+        "tick_base": 73.0,
+        "tick_coefficient": 0.2,
+        "can_crit": false
+      },
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Corruption (Rank 7, Spell 25311, the level-60 rank) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client, build 1.60.1.70450.'",
+        "url": "https://thewowdb.com/wow-forever/spell/corruption-25311/"
+      }
+    },
+    {
+      "id": "immolate",
+      "name": "Immolate",
+      "school": "fire",
+      "cast_time_ms": 2000,
+      "cooldown_ms": 0,
+      "resource_cost": 380.0,
+      "base_min": 158.0,
+      "base_max": 158.0,
+      "coefficient": 0.2,
+      "dot": {
+        "tick_interval_ms": 3000,
+        "num_ticks": 5,
+        "tick_base": 55.0,
+        "tick_coefficient": 0.13,
+        "can_crit": false
+      },
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Immolate (Rank 8, Spell 25309, the level-60 rank). Note: the prior REV2 entry had the direct (0.2) and per-tick (0.13) coefficients correctly matched to the same base values by coincidence, but with wrong base values (9 direct / 4 per tick); this revision corrects the base values to 158 direct / 55 per tick. -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client, build 1.60.1.70450.'",
+        "url": "https://thewowdb.com/wow-forever/spell/immolate-25309/"
+      }
+    },
+    {
+      "id": "shadow_bolt",
+      "name": "Shadow Bolt",
+      "school": "shadow",
+      "cast_time_ms": 3000,
+      "cooldown_ms": 0,
+      "resource_cost": 370.0,
+      "base_min": 251.0,
+      "base_max": 251.0,
+      "coefficient": 0.857,
+      "dot": null,
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Shadow Bolt (Rank 9, Spell 11661, the level-60 rank). Supersedes REV2's '246 to 274' range, which was a WebSearch-synthesis artifact -- the real client value is a flat 251, no range. -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client, build 1.60.1.70450.'",
+        "url": "https://thewowdb.com/wow-forever/spell/shadow-bolt-11661/"
+      }
+    },
+    {
+      "id": "shadowburn",
+      "name": "Shadowburn",
+      "school": "shadow",
+      "cast_time_ms": 0,
+      "cooldown_ms": 15000,
+      "resource_cost": 365.0,
+      "base_min": 266.0,
+      "base_max": 266.0,
+      "coefficient": 0.429,
+      "dot": null,
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Shadowburn (Rank 6, Spell 18871, the level-60 rank). Supersedes REV2's '65 to 74' range, which was a WebSearch-synthesis artifact -- the real client value is a flat 266, no range. (Effect #1, a separate non-damage Apply Aura with base value 1, is excluded -- the detail page's own summary describes only Effect #2's School Damage as the dealt damage.) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client, build 1.60.1.70450.'",
+        "url": "https://thewowdb.com/wow-forever/spell/shadowburn-18871/"
+      }
+    },
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "school": "fire",
+      "cast_time_ms": 3500,
+      "cooldown_ms": 0,
+      "resource_cost": 395.0,
+      "base_min": 451.0,
+      "base_max": 451.0,
+      "coefficient": 1.0,
+      "dot": {
+        "tick_interval_ms": 2000,
+        "num_ticks": 4,
+        "tick_base": 14.0,
+        "tick_coefficient": 0.0,
+        "can_crit": false
+      },
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Fireball (Rank 11, Spell 10151, the level-60 rank) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client.' Note: the periodic burn's 'It scales with...' clause is absent on the real page (coefficient is genuinely 0, not a parse failure) -- see crates/ingest's fireball_dot_with_no_scaling_clause_is_not_dropped regression test.",
+        "url": "https://thewowdb.com/wow-forever/spell/fireball-10151/"
+      }
+    },
+    {
+      "id": "frostbolt",
+      "name": "Frostbolt",
+      "school": "frost",
+      "cast_time_ms": 3000,
+      "cooldown_ms": 0,
+      "resource_cost": 290.0,
+      "base_min": 475.0,
+      "base_max": 475.0,
+      "coefficient": 0.814,
+      "dot": null,
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Frostbolt (Rank 11, Spell 25304, the level-60 rank) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client.' Note: Frostbolt also applies a non-damage slow/ensnare aura (Effect 1); correctly excluded from this SpellDef, which models only the School Damage effect (Effect 2) -- this simulator does not model movement/slow effects at all, only damage.",
+        "url": "https://thewowdb.com/wow-forever/spell/frostbolt-25304/"
+      }
+    },
+    {
+      "id": "flash_heal",
+      "name": "Flash Heal",
+      "school": "holy",
+      "cast_time_ms": 1500,
+      "cooldown_ms": 0,
+      "resource_cost": 380.0,
+      "base_min": 825.0,
+      "base_max": 825.0,
+      "coefficient": 0.429,
+      "dot": null,
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Flash Heal (Rank 7, Spell 10917, the real max rank -- level 56, not 60; Flash Heal has no higher rank in this data, confirmed by checking the full Priest changes list) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client.'",
+        "url": "https://thewowdb.com/wow-forever/spell/flash-heal-10917/"
+      }
+    },
+    {
+      "id": "greater_heal",
+      "name": "Greater Heal",
+      "school": "holy",
+      "cast_time_ms": 3000,
+      "cooldown_ms": 0,
+      "resource_cost": 710.0,
+      "base_min": 1960.0,
+      "base_max": 1960.0,
+      "coefficient": 0.857,
+      "dot": null,
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Greater Heal (Rank 5, Spell 25314, the level-60 rank) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client.'",
+        "url": "https://thewowdb.com/wow-forever/spell/greater-heal-25314/"
+      }
+    },
+    {
+      "id": "renew",
+      "name": "Renew",
+      "school": "holy",
+      "cast_time_ms": 0,
+      "cooldown_ms": 0,
+      "resource_cost": 410.0,
+      "base_min": 0.0,
+      "base_max": 0.0,
+      "coefficient": 0.0,
+      "dot": {
+        "tick_interval_ms": 3000,
+        "num_ticks": 5,
+        "tick_base": 166.0,
+        "tick_coefficient": 0.2,
+        "can_crit": false
+      },
+      "confidence": "beta-datamine",
+      "source": {
+        "name": "thewowdb.com/wow-forever Renew (Rank 10, Spell 25315, the level-60 rank) -- 'Generated from the SpellEffect, SpellMisc, SpellCooldowns and SpellRange records in the WoW Forever beta client.'",
+        "url": "https://thewowdb.com/wow-forever/spell/renew-25315/"
+      }
+    },
+    {
+      "id": "moonfire",
+      "name": "Moonfire",
+      "school": "arcane",
+      "cast_time_ms": 0,
+      "cooldown_ms": 0,
+      "resource_cost": 375.0,
+      "base_min": 124.0,
+      "base_max": 146.0,
+      "coefficient": 0.67,
+      "dot": {
+        "tick_interval_ms": 3000,
+        "num_ticks": 4,
+        "tick_base": 60.0,
+        "tick_coefficient": 0.0,
+        "can_crit": false
+      },
+      "confidence": "community-reported",
+      "source": {
+        "name": "WebSearch-synthesized (thewowdb.com returned a sustained HTTP 503 -- see game_build_reference). Spell id 9835 (Rank 10, learned at level 58, the real max rank -- confirmed no higher rank exists). Direct damage 124-146 Arcane, 67% spell power coefficient, 375 mana, instant cast; a separate independent search pass instead reported 129-150 for the direct component -- kept as an explicit unresolved ~4% discrepancy rather than silently averaged or picked (this pack's established practice, see Corruption's history). The 240-over-12s periodic component's own spell-power scaling was not stated by any source found, so tick_coefficient is 0.0 (absence of evidence, not a claim of zero -- same honest default used for Fireball's periodic burn).",
+        "url": "https://wow-forever.gg/db/spells/9835-moonfire/"
+      }
+    },
+    {
+      "id": "lightning_bolt",
+      "name": "Lightning Bolt",
+      "school": "nature",
+      "cast_time_ms": 2500,
+      "cooldown_ms": 0,
+      "resource_cost": 220.0,
+      "base_min": 185.0,
+      "base_max": 207.0,
+      "coefficient": 0.714,
+      "dot": null,
+      "confidence": "community-reported",
+      "source": {
+        "name": "WebSearch-synthesized (thewowdb.com returned a sustained HTTP 503 -- see game_build_reference). Spell id 10392 (Rank 10, the level-60 max rank). 185-207 Nature damage, 220 mana, 2.5s cast, 0.714 spell power coefficient -- corroborated independently by wowforever.wclbox.com's own Lightning Bolt rank page (same four figures) and by a separate source stating the coefficient as '71.4% of spell damage at the top rank', agreeing to three significant figures.",
+        "url": "https://wowforever.wclbox.com/en/fashu/shaman/shaman-lightning-bolt"
+      }
+    },
+    {
+      "id": "holy_light",
+      "name": "Holy Light",
+      "school": "holy",
+      "cast_time_ms": 2500,
+      "cooldown_ms": 0,
+      "resource_cost": 660.0,
+      "base_min": 1495.0,
+      "base_max": 1665.0,
+      "coefficient": 0.714,
+      "dot": null,
+      "confidence": "community-reported",
+      "source": {
+        "name": "WebSearch-synthesized (thewowdb.com returned a sustained HTTP 503 -- see game_build_reference). Max rank (Rank 9, level 60): 1495-1665 healing, 660 mana, 2.5s cast -- consistent across multiple sources' full per-rank tables. No source directly stated a spell power coefficient for this spell; 0.714 was derived from Classic's documented direct-effect coefficient formula (cast_time_s / 3.5, capped at 3.5s) applied to the sourced 2.5s cast time, then cross-validated against Lightning Bolt's independently-sourced 0.714 coefficient (also a 2.5s-cast spell, sourced from an entirely different class/site) -- two unrelated spells at the same cast-time tier landing on the same value is real corroboration, not a guess presented as fact.",
+        "url": "https://endgametools.com/en/wow-forever/spell/paladin/holy-light"
+      }
+    }
+  ],
+  "demonic_sacrifice_effects": [
+    {
+      "pet_type": "imp",
+      "shadow_damage_pct": 0.15,
+      "fire_damage_pct": 0.0,
+      "mana_regen_pct_per_tick": 0.0,
+      "health_regen_pct_per_tick": 0.0,
+      "confidence": "community-reported",
+      "source": {
+        "name": "classicwowforever.com: Demonic Sacrifice tooltip",
+        "url": "https://classicwowforever.com/talents/warlock/"
+      }
+    },
+    {
+      "pet_type": "succubus",
+      "shadow_damage_pct": 0.0,
+      "fire_damage_pct": 0.15,
+      "mana_regen_pct_per_tick": 0.0,
+      "health_regen_pct_per_tick": 0.0,
+      "confidence": "community-reported",
+      "source": {
+        "name": "classicwowforever.com: Demonic Sacrifice tooltip",
+        "url": "https://classicwowforever.com/talents/warlock/"
+      }
+    },
+    {
+      "pet_type": "voidwalker",
+      "shadow_damage_pct": 0.0,
+      "fire_damage_pct": 0.0,
+      "mana_regen_pct_per_tick": 0.02,
+      "health_regen_pct_per_tick": 0.0,
+      "confidence": "community-reported",
+      "source": {
+        "name": "classicwowforever.com: Demonic Sacrifice tooltip",
+        "url": "https://classicwowforever.com/talents/warlock/"
+      }
+    },
+    {
+      "pet_type": "felhunter",
+      "shadow_damage_pct": 0.0,
+      "fire_damage_pct": 0.0,
+      "mana_regen_pct_per_tick": 0.0,
+      "health_regen_pct_per_tick": 0.03,
+      "confidence": "community-reported",
+      "source": {
+        "name": "classicwowforever.com: Demonic Sacrifice tooltip",
+        "url": "https://classicwowforever.com/talents/warlock/"
+      }
+    }
+  ],
+  "disputed_mechanics": [
+    {
+      "id": "demonic_sacrifice_x_demonic_pact",
+      "name": "Demonic Sacrifice interaction with Demonic Pact",
+      "description": "RESOLVED 2026-10-17 by a primary source. Demonic Sacrifice's own base tooltip (classicwowforever.com) says plainly: 'The effect is canceled if any Demon is summoned' -- undisputed without the Demonic Pact talent. This pack had already adopted a same-pet-vs-different-pet-exemption rule as its best-sourced candidate, based on wofwforever.com's quote of Demonic Pact's tooltip. That rule is now CONFIRMED by an official Blizzard blue post, 'World of Warcraft: Forever Class Deep Dives -- Rogue and Warlock' (mirrored by Wowhead's Blue Tracker, found 2026-10-17; see this pack's game_build_reference): 'Your Demonic Sacrifice effect is no longer cancelled by summoning a different pet. Resummoning the sacrificed pet will still cancel the effect.' The post also confirms Demonic Pact requires the Soul Link talent as a prerequisite, and that it is the 31-point gold medal talent in Demonology. The alternative candidate rule below (the original, cruder framing with no same-pet exception) is kept in the record rather than deleted, per Plan Section 4.7 -- it is now contradicted by a primary source, not merely 'the other guess.'",
+      "candidate_rules": [
+        {
+          "id": "pact_exempts_different_pet_only",
+          "label": "Demonic Pact exempts a different-pet resummon only; resummoning the sacrificed pet still cancels it",
+          "source": {
+            "name": "Official Blizzard blue post, 'World of Warcraft: Forever Class Deep Dives -- Rogue and Warlock' (via Wowhead Blue Tracker)",
+            "url": "https://www.wowhead.com/forever/blue-tracker/news/eu/world-of-warcraft-forever-class-deep-dives-rogue-and-warlock-world-of-warcraft-24310968"
+          },
+          "description": "Confirmed Demonic Pact tooltip: 'Your Demonic Sacrifice effect is no longer cancelled by summoning a different pet. Resummoning the sacrificed pet will still cancel the effect.' (Also corroborated pre-confirmation by wofwforever.com's independent quote of the same tooltip.)",
+          "confidence": "dev-blue-post"
+        },
+        {
+          "id": "pact_exempts_any_resummon",
+          "label": "Demonic Pact exempts any resummon, including the sacrificed pet itself",
+          "source": {
+            "name": "andycarlson13/foreversims README",
+            "url": null
+          },
+          "description": "Original framing: 'Demonic Pact lifted the old restriction: the sacrificed bonus stays as long as you summon a different demon.' Did not mention or rule out a same-pet exception either way; now contradicted by the primary source above rather than merely a competing guess.",
+          "confidence": "community-reported"
+        }
+      ],
+      "default_rule_id": "pact_exempts_different_pet_only"
+    }
+  ],
+  "dispute_ledger": [
+    {
+      "mechanic_id": "demonic_sacrifice_x_demonic_pact",
+      "owner": "resolved -- no longer needs an owner",
+      "falsifiable_test": "RESOLVED 2026-10-17 via a primary source (official Blizzard blue post 'World of Warcraft: Forever Class Deep Dives -- Rogue and Warlock', mirrored by Wowhead's Blue Tracker): pact_exempts_different_pet_only is confirmed. Original falsifiable test (kept for the record): take Demonic Pact, sacrifice an Imp, summon a different demon (buff persists), then resummon the Imp (buff cancels) -- this is exactly what the blue post confirms happens.",
+      "target_resolution_date": "resolved 2026-10-17",
+      "status": "resolved"
+    }
+  ],
+  "raid_debuffs": [
+    {
+      "id": "curse_of_the_elements",
+      "name": "Curse of the Elements",
+      "schools_affected": ["shadow", "fire", "frost", "arcane"],
+      "damage_taken_pct_bonus": 0.10,
+      "confidence": "community-reported",
+      "source": {
+        "name": "thewowdb.com/wow-forever/changes/spells/warlock/ confirms the spell (id 440892, Rank 1) and its Forever tooltip template ('Reduces Magic resistances by X and increases Magic damage taken by X%'), and confirms Curse of Shadow no longer exists as a separate spell. The 10% max-rank figure and the Shadow/Fire/Frost/Arcane school list are WebSearch-synthesized (wowforever.wclbox.com and corroborating sites reporting ranks 1-4 at 4/6/8/10%), not read directly off a thewowdb.com max-rank page (that page returned a transient HTTP 503 -- see this pack's game_build_reference for the full note). Community-reported, not beta-datamine, pending a direct re-check.",
+        "url": "https://thewowdb.com/wow-forever/changes/spells/warlock/"
+      }
+    }
+  ]
+}

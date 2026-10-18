@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WoW Forever Simulator (client-side bring-up)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><text y=%2224%22 font-size=%2224%22>⚔️</text></svg>">
+<style>
+  :root {
+    --bg: #15151b; --panel: #1e1e27; --border: #33333f; --text: #e6e6ee; --muted: #9797a8;
+    --accent: #5b8cff;
+    --tier-live: #2fae5a; --tier-blue: #3b82f6; --tier-amber: #d9a224; --tier-red: #e0453f; --tier-teal: #22a2a2;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1100px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  select, button { font-size: 13px; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--border); background: #2a2a35; color: var(--text); }
+  select { width: 100%; margin-top: 4px; }
+  button { cursor: pointer; margin-top: 10px; margin-right: 6px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:hover { filter: brightness(1.1); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #0a0a0a; margin-right: 6px; margin-bottom: 4px; }
+  .tier-live-confirmed { background: var(--tier-live); }
+  .tier-dev-blue-post { background: var(--tier-teal); }
+  .tier-beta-datamine { background: var(--tier-blue); color: #fff; }
+  .tier-community-reported { background: var(--tier-amber); }
+  .tier-community-disputed, .tier-placeholder { background: var(--tier-red); color: #fff; }
+  .warn { background: #3a1f1f; border: 1px solid var(--tier-red); border-radius: 6px; padding: 8px 10px; margin: 8px 0; font-size: 13px; }
+  .stat { font-size: 26px; font-weight: 700; }
+  .stat-row { display: flex; gap: 18px; margin: 8px 0 14px; flex-wrap: wrap; }
+  .stat-row div { font-size: 12px; color: var(--muted); }
+  table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
+  td, th { padding: 4px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+  code { background: #2a2a35; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  #sequence div { font-family: monospace; font-size: 12px; }
+  .identity { font-family: monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: 8px 0 14px; }
+  .tab-btn {
+    background: transparent; border: none; border-radius: 6px 6px 0 0; color: var(--muted);
+    padding: 7px 14px; font-size: 13px; cursor: pointer; margin: 0;
+  }
+  .tab-btn.active { background: #262632; color: var(--text); font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .ability-bar-track { background: #2a2a35; border-radius: 3px; height: 6px; width: 100%; overflow: hidden; }
+  .ability-bar-fill { height: 100%; border-radius: 3px; }
+  .ability-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .timeline-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: #181820; }
+  .timeline-axis { position: relative; height: 22px; border-bottom: 1px solid var(--border); font-size: 10px; color: var(--muted); }
+  .timeline-axis span { position: absolute; top: 4px; transform: translateX(-50%); }
+  .timeline-row { position: relative; height: 28px; border-bottom: 1px solid #22222c; display: flex; align-items: center; }
+  .timeline-row-label { position: sticky; left: 0; width: 140px; flex: 0 0 140px; padding: 0 8px; font-size: 11px; color: var(--muted); background: #181820; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+  .timeline-row-track { position: relative; flex: 1; height: 100%; min-width: 600px; }
+  .timeline-mark {
+    position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%;
+    transform: translate(-50%, -50%); cursor: default;
+  }
+  .timeline-mark.crit { width: 10px; height: 10px; box-shadow: 0 0 4px 1px currentColor; }
+  .buff-row { margin-bottom: 10px; }
+  .buff-row-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .buff-track { position: relative; height: 16px; background: #2a2a35; border-radius: 4px; overflow: hidden; }
+  .buff-fill { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .7; }
+</style>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
+    <h1>WoW Forever Simulator -- client-side bring-up</h1>
+    <a href="./talents.html" style="font-size:13px; padding:7px 14px; border-radius:6px; background:var(--accent); color:#fff; text-decoration:none; font-weight:600;">📖 Talent Calculator</a>
+  </div>
+  <div class="sub">
+    Simulation runs entirely in your browser via WebAssembly (Plan Section 5) -- nothing you run here touches a server.
+    Identity is a locally-generated anonymous id stored only in this browser's own storage; see the Identity panel for export/delete.
+    Build your talents first in the <a href="./talents.html">talent calculator</a>, then run them here.
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Run a simulation</h2>
+      <label>Build</label>
+      <select id="buildSelect"></select>
+      <div class="sub" id="buildSelectNote" style="margin-top:4px;"></div>
+      <div>
+        <button class="primary" id="runDpsBtn">Run Simulation</button>
+        <button id="runBurstBtn">Run Burst Calculator (15s window)</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Identity &amp; your data</h2>
+      <div class="sub" style="margin-bottom:6px;">Locally generated, never sent anywhere. This is this project's "accounts" layer (Plan Section 5) -- client-side only, so there is nothing server-side to retain or delete.</div>
+      <div class="identity" id="identityDisplay"></div>
+      <button id="exportBtn">Export my data</button>
+      <button id="deleteBtn">Delete my data</button>
+    </div>
+
+    <div class="panel" style="grid-column: 1 / -1;">
+      <h2>Result</h2>
+      <div class="tabs" id="resultTabs" style="display:none;">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="abilities">Abilities</button>
+        <button class="tab-btn" data-tab="timeline">Timeline</button>
+        <button class="tab-btn" data-tab="buffs">Buffs &amp; Debuffs</button>
+      </div>
+      <div class="tab-panel active" id="tab-overview">
+        <div id="resultArea"><em style="color:var(--muted)">Run a simulation to see results here.</em></div>
+      </div>
+      <div class="tab-panel" id="tab-abilities">
+        <div id="abilitiesArea"></div>
+      </div>
+      <div class="tab-panel" id="tab-timeline">
+        <div id="timelineArea"></div>
+      </div>
+      <div class="tab-panel" id="tab-buffs">
+        <div id="buffsArea"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="grid-column: 1 / -1;">
+      <h2>Your local history</h2>
+      <table id="historyTable">
+        <thead><tr><th>Time</th><th>Build</th><th>Data pack</th><th>Mean DPS / Expected dmg</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import init, { simulate_dps, simulate_burst, simulate_heal, simulate_dps_detail, simulate_hps_detail } from './pkg/wowforever.js';
+    import {
+      CLASS_LABELS, CLASS_SIM, DEMO_ALLOCATION, DATA_PACK_PATH, getSavedBuilds, buildSimConfig, buildBurstConfig,
+    } from './talent-builds.js';
+
+    const TIER_CLASS = {
+      'live-confirmed': 'tier-live-confirmed',
+      'dev-blue-post': 'tier-dev-blue-post',
+      'beta-datamine': 'tier-beta-datamine',
+      'community-reported': 'tier-community-reported',
+      'community-disputed': 'tier-community-disputed',
+      'placeholder': 'tier-placeholder',
+    };
+
+    let dataPack = null;
+    let dataPackRaw = null;
+
+    // Resolves the build-select's current option into { classId, allocation, label }.
+    // 'demo:<classId>' options use DEMO_ALLOCATION; 'saved:<index>' options
+    // load a build saved from web/talents.html (shared localStorage, see
+    // talent-builds.js) -- the whole point of this function existing is so
+    // the simulator can run *either* kind the same way.
+    function resolveSelection() {
+      const val = document.getElementById('buildSelect').value;
+      if (!val) return null;
+      if (val.startsWith('demo:')) {
+        const classId = val.slice('demo:'.length);
+        return { classId, allocation: DEMO_ALLOCATION[classId], label: `${CLASS_LABELS[classId]} (demo build)` };
+      }
+      if (val.startsWith('saved:')) {
+        const idx = Number(val.slice('saved:'.length));
+        const b = getSavedBuilds()[idx];
+        if (!b) return null;
+        return { classId: b.classId, allocation: b.allocation, label: `${b.name} (${CLASS_LABELS[b.classId] || b.classId})` };
+      }
+      return null;
+    }
+
+    function populateBuildSelect() {
+      const sel = document.getElementById('buildSelect');
+      const prevVal = sel.value;
+      sel.innerHTML = '';
+
+      const demoGroup = document.createElement('optgroup');
+      demoGroup.label = 'Demo builds (no talents selected)';
+      for (const classId of Object.keys(CLASS_SIM)) {
+        const sim = CLASS_SIM[classId];
+        const opt = document.createElement('option');
+        opt.value = `demo:${classId}`;
+        const rotationLabel = sim.melee ? 'auto-attack only' : sim.rotation.join(' / ');
+        opt.textContent = sim.mode ? `${CLASS_LABELS[classId]} -- ${rotationLabel}` : `${CLASS_LABELS[classId]} -- not runnable yet`;
+        opt.disabled = !sim.mode;
+        demoGroup.appendChild(opt);
+      }
+      sel.appendChild(demoGroup);
+
+      const saved = getSavedBuilds();
+      if (saved.length) {
+        const savedGroup = document.createElement('optgroup');
+        savedGroup.label = 'Saved talent builds';
+        saved.forEach((b, i) => {
+          const sim = CLASS_SIM[b.classId];
+          const pts = Object.values(b.allocation).reduce((a, c) => a + c, 0);
+          const opt = document.createElement('option');
+          opt.value = `saved:${i}`;
+          opt.textContent = `${b.name} (${CLASS_LABELS[b.classId] || b.classId}, ${pts} pts)` + (sim.mode ? '' : ' -- not runnable yet');
+          opt.disabled = !sim.mode;
+          savedGroup.appendChild(opt);
+        });
+        sel.appendChild(savedGroup);
+      } else {
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.textContent = `(no saved builds yet -- save one in the talent calculator)`;
+        sel.appendChild(opt);
+      }
+
+      if (prevVal && Array.from(sel.options).some((o) => o.value === prevVal && !o.disabled)) sel.value = prevVal;
+      const note = document.getElementById('buildSelectNote');
+      note.innerHTML = `Builds saved in the <a href="./talents.html">talent calculator</a> appear here automatically.`;
+    }
+
+    function getIdentity() {
+      let id = localStorage.getItem('wowforever_identity');
+      if (!id) {
+        id = 'local-' + crypto.randomUUID();
+        localStorage.setItem('wowforever_identity', id);
+      }
+      return id;
+    }
+
+    function getHistory() {
+      return JSON.parse(localStorage.getItem('wowforever_history') || '[]');
+    }
+
+    function appendHistory(entry) {
+      const h = getHistory();
+      h.push(entry);
+      localStorage.setItem('wowforever_history', JSON.stringify(h));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const tbody = document.querySelector('#historyTable tbody');
+      tbody.innerHTML = '';
+      for (const row of getHistory().slice().reverse()) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(row.at).toLocaleTimeString()}</td><td>${row.build}</td><td>${row.dataPackVersion}</td><td>${row.value.toFixed(1)}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function confidenceBadges(spellIds) {
+      return spellIds
+        .map((id) => {
+          const spell = dataPack.spells.find((s) => s.id === id);
+          if (!spell) return '';
+          const cls = TIER_CLASS[spell.confidence] || 'tier-community-reported';
+          return `<span class="badge ${cls}" title="${spell.source.name}">${spell.name}: ${spell.confidence}</span>`;
+        })
+        .join('');
+    }
+
+    // Stable color per ability/auto-attack source id, shared by the
+    // Abilities table's swatches and the Timeline's per-row marks so the
+    // same ability reads as the same color in both views.
+    const SOURCE_COLORS = ['#5b8cff', '#e0453f', '#2fae5a', '#d9a224', '#b45bff', '#22a2a2', '#ff8a5b', '#5bd1ff', '#ff5ba3'];
+    const sourceColorCache = {};
+    function colorFor(sourceId) {
+      if (!(sourceId in sourceColorCache)) {
+        sourceColorCache[sourceId] = SOURCE_COLORS[Object.keys(sourceColorCache).length % SOURCE_COLORS.length];
+      }
+      return sourceColorCache[sourceId];
+    }
+    function labelFor(sourceId, kind) {
+      const name = sourceId === 'auto_attack' ? 'Auto Attack' : sourceId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      return kind === 'tick' ? `${name} (tick)` : name;
+    }
+
+    function setResultTabsVisible(visible) {
+      document.getElementById('resultTabs').style.display = visible ? 'flex' : 'none';
+      if (!visible) {
+        // Force back to the Overview panel. Without this, if the user had
+        // switched to e.g. the Timeline tab during a previous DPS run and
+        // then runs Burst (which hides the tab bar, since detail isn't
+        // computed for it), the Overview panel -- where runBurst's result
+        // actually gets written -- could stay hidden with `display:none`,
+        // making a real result invisible even though it rendered correctly.
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === 'overview'));
+        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-overview'));
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    function renderAbilities(detail) {
+      const area = document.getElementById('abilitiesArea');
+      if (!detail.abilities.length) {
+        area.innerHTML = `<em style="color:var(--muted)">No damage/healing events in this run.</em>`;
+        return;
+      }
+      const totalDamage = detail.abilities.reduce((a, ab) => a + ab.total_damage, 0);
+      const fightS = detail.fight_duration_ms / 1000;
+      const rows = detail.abilities.map((ab) => {
+        const share = totalDamage > 0 ? (ab.total_damage / totalDamage) * 100 : 0;
+        const critPct = ab.crit_eligible > 0 ? (ab.crits / ab.crit_eligible) * 100 : null;
+        return `
+          <tr>
+            <td><span class="ability-swatch" style="background:${colorFor(ab.source_id)}"></span>${labelFor(ab.source_id, ab.kind)}</td>
+            <td>${(ab.total_damage / fightS).toFixed(1)}</td>
+            <td style="min-width:90px;">
+              <div class="ability-bar-track"><div class="ability-bar-fill" style="width:${share.toFixed(1)}%; background:${colorFor(ab.source_id)}"></div></div>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">${share.toFixed(1)}%</div>
+            </td>
+            <td>${ab.casts}</td>
+            <td>${(ab.total_damage / ab.casts).toFixed(1)}</td>
+            <td>${critPct === null ? '—' : critPct.toFixed(1) + '%'}</td>
+          </tr>`;
+      }).join('');
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:8px;">One representative simulated run (seed-fixed), not an average across iterations -- real sim tools report these two things separately since you can't average "which rolls crit" into one coherent log. DPS/HPS and casts here are from this one run; the Overview tab's stats are the real Monte Carlo aggregate across 10,000 runs.</div>
+        <table>
+          <thead><tr><th>Ability</th><th>DPS</th><th>Share</th><th>Casts</th><th>Avg / Cast</th><th>Crit %</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderTimeline(detail) {
+      const area = document.getElementById('timelineArea');
+      if (!detail.events.length) {
+        area.innerHTML = `<em style="color:var(--muted)">No events in this run.</em>`;
+        return;
+      }
+      const fightMs = detail.fight_duration_ms;
+      const rowIds = detail.abilities.map((ab) => ({ id: ab.source_id, kind: ab.kind }));
+      const tickCount = Math.min(13, Math.ceil(fightMs / 10000) + 1);
+      const axisTicks = Array.from({ length: tickCount }, (_, i) => {
+        const t = Math.round((i / (tickCount - 1)) * fightMs);
+        return `<span style="left:${(t / fightMs) * 100}%">${Math.floor(t / 60000)}:${String(Math.floor((t % 60000) / 1000)).padStart(2, '0')}</span>`;
+      }).join('');
+
+      const rowsHtml = rowIds.map(({ id, kind }) => {
+        const marks = detail.events
+          .filter((e) => e.source_id === id && e.kind === kind)
+          .map((e) => {
+            const left = (e.time_ms / fightMs) * 100;
+            const color = colorFor(id);
+            return `<div class="timeline-mark${e.is_crit ? ' crit' : ''}" style="left:${left}%; background:${color}; color:${color};" title="${labelFor(id, kind)} @ ${(e.time_ms / 1000).toFixed(1)}s -- ${e.damage.toFixed(1)}${e.is_crit ? ' (crit)' : ''}"></div>`;
+          }).join('');
+        return `<div class="timeline-row"><div class="timeline-row-label"><span class="ability-swatch" style="background:${colorFor(id)}"></span>${labelFor(id, kind)}</div><div class="timeline-row-track">${marks}</div></div>`;
+      }).join('');
+
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:8px;">Same representative run as the Abilities tab. Hover a mark for its exact time and damage; larger marks are crits.</div>
+        <div class="timeline-wrap">
+          <div class="timeline-row"><div class="timeline-row-label"></div><div class="timeline-row-track timeline-axis">${axisTicks}</div></div>
+          ${rowsHtml}
+        </div>
+      `;
+    }
+
+    function renderBuffs(detail) {
+      const area = document.getElementById('buffsArea');
+      if (!detail.buffs.length) {
+        area.innerHTML = `<em style="color:var(--muted)">No buffs or debuffs are currently modeled for this build.</em>`;
+        return;
+      }
+      const fightMs = detail.fight_duration_ms;
+      const rows = detail.buffs.map((b) => {
+        const leftPct = (b.start_ms / fightMs) * 100;
+        const widthPct = ((b.end_ms - b.start_ms) / fightMs) * 100;
+        const uptimePct = ((b.end_ms - b.start_ms) / fightMs) * 100;
+        return `
+          <div class="buff-row">
+            <div class="buff-row-label"><span>${b.name}</span><span>${uptimePct.toFixed(0)}% uptime (${(b.start_ms/1000).toFixed(1)}s&ndash;${(b.end_ms/1000).toFixed(1)}s)</span></div>
+            <div class="buff-track"><div class="buff-fill" style="left:${leftPct}%; width:${widthPct}%;"></div></div>
+          </div>`;
+      }).join('');
+      area.innerHTML = `<div class="sub" style="margin-bottom:10px;">From the same representative run. This engine currently models exactly one such mechanic (Demonic Sacrifice) -- a build without it correctly shows nothing here, not a fabricated entry.</div>${rows}`;
+    }
+
+    async function runDps() {
+      const sel = resolveSelection();
+      const area = document.getElementById('resultArea');
+      setResultTabsVisible(false);
+      if (!sel) { area.innerHTML = `<div class="warn">No build selected.</div>`; return; }
+      const sim = CLASS_SIM[sel.classId];
+      if (!sim.mode) { area.innerHTML = `<div class="warn">${sim.reason}</div>`; return; }
+
+      const buildConfig = buildSimConfig(sel.classId, sel.allocation);
+      const unit = sim.mode === 'heal' ? 'HPS' : 'DPS';
+      const seed = 1;
+      const resultJson = sim.mode === 'heal'
+        ? simulate_heal(dataPackRaw, JSON.stringify(buildConfig), 10000, seed)
+        : simulate_dps(dataPackRaw, JSON.stringify(buildConfig), 10000, seed);
+      const result = JSON.parse(resultJson);
+
+      if (!result.ok) {
+        area.innerHTML = `<div class="warn">Error: ${result.error}</div>`;
+        return;
+      }
+
+      let disputeHtml = '';
+      if (result.touches_disputed_mechanic) {
+        disputeHtml = `<div class="warn">[DISPUTED MECHANIC] ${result.dispute.mechanic_id} -- Rule A (${result.dispute.rule_a_label}): ${result.dispute.rule_a_mean_dps.toFixed(1)} DPS vs. Rule B (${result.dispute.rule_b_label}): ${result.dispute.rule_b_mean_dps.toFixed(1)} DPS (${result.dispute.pct_swing.toFixed(2)}% swing on an unresolved rule).</div>`;
+      }
+      const healNote = sim.mode === 'heal'
+        ? `<div class="sub" style="margin-top:6px;">Healer output only (Plan Section 8) -- no incoming raid-damage profile to react to exists in this project yet.</div>`
+        : '';
+      const meleeWarn = sim.note
+        ? `<div class="warn" style="margin-top:6px;"><strong>⚠ Partial model:</strong> ${sim.note}</div>`
+        : '';
+      const talentEffectIds = Object.keys(sim.talentEffects);
+      const talentNote = talentEffectIds.length
+        ? `<div class="sub" style="margin-top:6px;">Talent effects applied: ${talentEffectIds.map((id) => `${id.replace(/_/g, ' ')}: ${(sel.allocation[id] || 0) > 0 ? 'active' : 'not taken'}`).join(' &middot; ')}</div>`
+        : (sim.note ? '' : `<div class="sub" style="margin-top:6px;">No ${CLASS_LABELS[sel.classId]} talents are wired into the engine yet -- this number reflects the demo rotation only, regardless of this build's allocation.</div>`);
+
+      area.innerHTML = `
+        <div class="stat">${result.mean.toFixed(1)} ${unit}</div>
+        <div class="stat-row">
+          <div>stdev<br><strong style="color:var(--text)">${result.stdev.toFixed(1)}</strong></div>
+          <div>p5<br><strong style="color:var(--text)">${result.p5.toFixed(1)}</strong></div>
+          <div>p50<br><strong style="color:var(--text)">${result.p50.toFixed(1)}</strong></div>
+          <div>p95<br><strong style="color:var(--text)">${result.p95.toFixed(1)}</strong></div>
+        </div>
+        ${disputeHtml}
+        <div>${confidenceBadges(sim.rotation)}</div>
+        ${healNote}
+        ${meleeWarn}
+        ${talentNote}
+        <div class="sub" style="margin-top:8px;">Data pack: <code>${result.data_pack_version}</code></div>
+      `;
+
+      appendHistory({ at: Date.now(), build: sel.label + ' ' + unit, dataPackVersion: result.data_pack_version, value: result.mean });
+
+      // Same build, same seed -- one representative run's full detail,
+      // a genuinely different (not averaged) kind of output from the
+      // Monte Carlo summary above. See renderAbilities' own note for why
+      // these are shown as two separate things, not reconciled into one.
+      const detailJson = sim.mode === 'heal'
+        ? simulate_hps_detail(dataPackRaw, JSON.stringify(buildConfig), seed)
+        : simulate_dps_detail(dataPackRaw, JSON.stringify(buildConfig), seed);
+      const detail = JSON.parse(detailJson);
+      if (detail.ok) {
+        renderAbilities(detail);
+        renderTimeline(detail);
+        renderBuffs(detail);
+        setResultTabsVisible(true);
+      }
+    }
+
+    async function runBurst() {
+      const sel = resolveSelection();
+      const area = document.getElementById('resultArea');
+      setResultTabsVisible(false); // the Abilities/Timeline/Buffs detail is DPS/HPS-only -- not computed for burst
+      if (!sel) { area.innerHTML = `<div class="warn">No build selected.</div>`; return; }
+      const sim = CLASS_SIM[sel.classId];
+      const burstConfig = buildBurstConfig(sel.classId, sel.allocation);
+      if (!burstConfig) {
+        const reason = sim.mode === 'heal'
+          ? `Burst damage isn't a meaningful question for a healer build -- not applicable, not omitted by oversight.`
+          : sim.mode
+            ? `No burst cooldown sourced for ${CLASS_LABELS[sel.classId]} yet -- honestly omitted rather than faked with a placeholder build.`
+            : sim.reason;
+        area.innerHTML = `<div class="warn">${reason}</div>`;
+        return;
+      }
+      const resultJson = simulate_burst(dataPackRaw, JSON.stringify(burstConfig), 10000, 1);
+      const result = JSON.parse(resultJson);
+      if (!result.ok) {
+        area.innerHTML = `<div class="warn">Error: ${result.error}</div>`;
+        return;
+      }
+      const seqHtml = result.sequence.map(([t, id]) => `<div>t=${String(t).padStart(6)}ms  ${id}</div>`).join('');
+      area.innerHTML = `
+        <div class="stat">${result.expected_damage.toFixed(1)} expected damage</div>
+        <div class="stat-row">
+          <div>Monte Carlo mean<br><strong style="color:var(--text)">${result.mc_mean.toFixed(1)}</strong></div>
+          <div>p5<br><strong style="color:var(--text)">${result.mc_p5.toFixed(1)}</strong></div>
+          <div>p95<br><strong style="color:var(--text)">${result.mc_p95.toFixed(1)}</strong></div>
+          <div>Guaranteed floor<br><strong style="color:var(--text)">${result.guaranteed_floor.toFixed(1)}</strong></div>
+        </div>
+        <div class="sub">${result.provably_optimal ? 'PROVABLY OPTIMAL (search never had to prune)' : 'Best found under search budget, not guaranteed optimal'}</div>
+        <div id="sequence" style="margin-top:8px;">${seqHtml}</div>
+      `;
+      appendHistory({ at: Date.now(), build: sel.label + ' burst', dataPackVersion: dataPack.version, value: result.expected_damage });
+    }
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const payload = { identity: getIdentity(), history: getHistory() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'wowforever-my-data.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    document.getElementById('deleteBtn').addEventListener('click', () => {
+      localStorage.removeItem('wowforever_history');
+      localStorage.removeItem('wowforever_identity');
+      renderHistory();
+      document.getElementById('identityDisplay').textContent = 'Deleted. A new id will be generated next time you run something.';
+    });
+
+    document.getElementById('runDpsBtn').addEventListener('click', runDps);
+    document.getElementById('runBurstBtn').addEventListener('click', runBurst);
+
+    async function main() {
+      await init();
+      const resp = await fetch(DATA_PACK_PATH);
+      dataPackRaw = await resp.text();
+      dataPack = JSON.parse(dataPackRaw);
+      document.getElementById('identityDisplay').textContent = 'Your local id: ' + getIdentity();
+      populateBuildSelect();
+      renderHistory();
+    }
+    main();
+  </script>
+</body>
+</html>

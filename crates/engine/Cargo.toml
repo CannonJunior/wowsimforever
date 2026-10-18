@@ -1,0 +1,11 @@
+[package]
+name = "wowforever-engine"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+wowforever-data = { path = "../data" }
+wowforever-stats = { path = "../stats" }
+serde = { workspace = true }
+rand = { workspace = true }
+rand_pcg = { workspace = true }
