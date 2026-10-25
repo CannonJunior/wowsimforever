@@ -23,7 +23,7 @@ use wowforever_raid::{simulate_raid_with_debuffs, RaidMember};
 use wowforever_recommend::{diff_data_packs, find_affected_builds};
 use wowforever_storage::{build_comparisons, ExternalResult, ExternalResultStore, RunStore};
 
-const DEFAULT_DATA_PACK: &str = "data-packs/forever-beta-2026-10-17-rev9.json";
+const DEFAULT_DATA_PACK: &str = "data-packs/forever-beta-2026-10-17-rev14.json";
 
 #[derive(PartialEq)]
 enum Mode {
@@ -193,40 +193,70 @@ fn warlock_demo_build() -> BuildConfig {
         weapon_min: 0.0,
         weapon_max: 0.0,
         weapon_speed_ms: 0,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 0.0,
     }
 }
 
-/// Mage demo build (Plan Section 7's "remaining classes/specs," proving the
-/// engine generalizes beyond Warlock -- see docs/PLAN.md's REV4 update).
-/// Scope note: Fireball's minor periodic burn means this engine's
-/// maintenance-style rotation logic (re-cast only once a spell's own DoT
-/// expires -- the same mechanism Corruption/Immolate already use) treats
-/// Fireball like a maintained DoT with a direct component, recasting it
-/// only every ~8s rather than every cast as real play would. This is an
-/// honest consequence of Phase 1's simplified, non-APL rotation model
-/// (Plan Section 2.2/3), not a new limitation introduced for Mage -- it's
-/// the same simplification Immolate already has, just more visible here.
-/// Demonic Sacrifice fields are irrelevant to Mage and left at their
-/// inert defaults (no pet, no Warlock mechanic) rather than omitted, since
-/// `BuildConfig` is shared across classes in this Phase 1 engine.
+/// Arcane Mage demo build (REV11, recalibrated 2026-10-18 after the user
+/// judged the Arcane rework's own 199.0 DPS "laughably bad," a regression
+/// from the old Fireball/Frostbolt demo's 275.7). Root-caused against a
+/// real reference engine (`wowsims/tbc`'s own Arcane Blast
+/// implementation), not just re-tuned by feel -- two real bugs found:
+/// (1) `effective_resource_cost` compounded the per-stack mana cost
+/// exponentially (`base * multiplier.powi(stacks)`) instead of the
+/// additive formula every real Blizzard stacking-cost ability actually
+/// uses (`base * (1 + (multiplier-1)*stacks)`), making Arcane Blast's 4th
+/// stack cost ~11,000 mana against a 6,000 pool -- see
+/// `wowforever_data::StackingBuffDef`'s doc comment; (2) the rotation had
+/// no way to stop rebuilding a fully-stacked buff (a real APL's
+/// `buff.stack<max` condition), so Arcane Blast monopolized every GCD it
+/// could afford -- fixed generically via `build_schedule`'s new
+/// `stack_ready` check. Separately, `arcane_wrath` (a 6s-cooldown nuke)
+/// is now listed *above* the cooldown-free `arcane_missiles` in
+/// priority -- the same "don't let a short cooldown cap while a
+/// repeatable filler keeps winning the GCD" lesson this project's own
+/// Warrior rotation already learned (see `build_schedule`'s
+/// `try_fire_heroic_strike` doc comment) -- without this, Missiles'
+/// unconditional availability starved Wrath out entirely once mana
+/// stopped being the bottleneck. `starting_mana`/`max_mana` (10,000) and
+/// `mana_regen_per_second` (40) are hand-entered illustrative stats, not
+/// sourced spell data (same category as `spell_power: 350.0` below) --
+/// recalibrated up from 6,000/25 for the same reason the melee classes'
+/// attack power was recalibrated (see `CLASS_SIM.hunter`'s note in
+/// `web/talent-builds.js`): the old pair left the build mana-starved for
+/// roughly half the fight even after the cost-formula fix, which doesn't
+/// represent a raid-buffed level-60 caster's real mana sustain. Mana
+/// remains a genuinely enforced constraint (not unconstrained the way the
+/// pre-REV11 demo was) -- this build still goes idle waiting on regen for
+/// part of the fight, just not most of it. Demonic Sacrifice fields are
+/// irrelevant to Mage and left at their inert defaults (no pet, no
+/// Warlock mechanic) rather than omitted, since `BuildConfig` is shared
+/// across classes in this Phase 1 engine.
 fn mage_demo_build() -> BuildConfig {
     BuildConfig {
         spell_power: 350.0,
         crit_chance: 0.20,
         fight_duration_ms: 60_000,
-        rotation: vec!["fireball".into(), "frostbolt".into()],
+        rotation: vec!["arcane_power".into(), "arcane_blast".into(), "arcane_wrath".into(), "arcane_missiles".into(), "frostbolt".into()],
         pet_type: PetType::Imp,
         demonic_sacrifice_active: false,
         has_demonic_pact: false,
         resummon_event_ms: None,
         resummon_is_same_pet: false,
         dispute_rule_override: None,
-        starting_mana: None,
-        mana_regen_per_second: 0.0,
+        starting_mana: Some(10000.0),
+        mana_regen_per_second: 40.0,
         attack_power: 0.0,
         weapon_min: 0.0,
         weapon_max: 0.0,
         weapon_speed_ms: 0,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 10000.0,
     }
 }
 
@@ -252,6 +282,10 @@ fn shaman_demo_build() -> BuildConfig {
         weapon_min: 0.0,
         weapon_max: 0.0,
         weapon_speed_ms: 0,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 0.0,
     }
 }
 
@@ -278,6 +312,10 @@ fn druid_demo_build() -> BuildConfig {
         weapon_min: 0.0,
         weapon_max: 0.0,
         weapon_speed_ms: 0,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 0.0,
     }
 }
 
@@ -310,11 +348,27 @@ fn rogue_demo_build() -> BuildConfig {
     melee_demo_build(vec![], 900.0, 35.0, 65.0, 1700)
 }
 fn warrior_demo_build() -> BuildConfig {
-    // REV9: Bloodthirst on top of auto-attack -- this project's first
-    // sourced attack-power-scaling special ability. Still a partial
-    // rotation (real Warriors use more than one rage-spending ability),
-    // stated honestly in the web UI's warning banner for this class.
-    melee_demo_build(vec!["bloodthirst".into()], 1000.0, 80.0, 140.0, 3300)
+    // REV10: a real rage-gated rotation on top of auto-attack -- Rend
+    // (bleed uptime) and Bloodthirst (cooldown) in GCD priority, Whirlwind
+    // as a GCD filler, Heroic Strike handled outside the GCD rotation via
+    // `heroic_strike_spell_id` (see `wowforever_engine::build_schedule`'s
+    // doc comment for why). Execute is deliberately not included -- it
+    // needs target-health-over-time modeling this engine doesn't have
+    // yet, a stated gap, not a silent omission (see docs/PLAN.md's
+    // twenty-seventh update).
+    BuildConfig {
+        rage_enabled: true,
+        is_two_handed: true,
+        heroic_strike_spell_id: Some("heroic_strike".into()),
+        max_mana: 0.0,
+        ..melee_demo_build(
+            vec!["rend".into(), "bloodthirst".into(), "whirlwind".into()],
+            1000.0,
+            80.0,
+            140.0,
+            3300,
+        )
+    }
 }
 
 fn melee_demo_build(rotation: Vec<String>, attack_power: f64, weapon_min: f64, weapon_max: f64, weapon_speed_ms: u32) -> BuildConfig {
@@ -335,6 +389,10 @@ fn melee_demo_build(rotation: Vec<String>, attack_power: f64, weapon_min: f64, w
         weapon_min,
         weapon_max,
         weapon_speed_ms,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 0.0,
     }
 }
 

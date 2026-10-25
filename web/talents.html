@@ -114,6 +114,24 @@
   .buff-row-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
   .buff-track { position: relative; height: 16px; background: #26262f; border-radius: 4px; overflow: hidden; }
   .buff-fill { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .7; }
+
+  .subpanel { background: #1a1a21; border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; margin-top: 14px; }
+  .subpanel h3 { font-size: 12px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .priority-list { list-style: none; margin: 0; padding: 0; counter-reset: priority; }
+  .priority-list li { counter-increment: priority; display: flex; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #26262f; font-size: 13px; }
+  .priority-list li:last-child { border-bottom: none; }
+  .priority-list li::before { content: counter(priority); flex: 0 0 18px; height: 18px; border-radius: 50%; background: #26262f; color: var(--muted); font-size: 11px; text-align: center; line-height: 18px; }
+  .priority-list .pname { font-weight: 600; }
+  .priority-list .phint { color: var(--muted); font-size: 12px; }
+  .off-gcd-note { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--muted); }
+  .off-gcd-note strong { color: var(--text); }
+  .kv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 20px; font-size: 12px; }
+  .kv-grid div span:first-child { display: block; color: var(--muted); }
+  .kv-grid div span:last-child { font-size: 13px; }
+  .resource-row { margin-bottom: 8px; }
+  .resource-row-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .resource-track { position: relative; height: 10px; background: #26262f; border-radius: 4px; overflow: hidden; }
+  .resource-fill { height: 100%; border-radius: 4px; background: var(--tier-amber); }
 </style>
 </head>
 <body>
@@ -150,9 +168,12 @@
         <button class="tab-btn" data-tab="abilities">Abilities</button>
         <button class="tab-btn" data-tab="timeline">Timeline</button>
         <button class="tab-btn" data-tab="buffs">Buffs &amp; Debuffs</button>
+        <button class="tab-btn" data-tab="resources">Resources</button>
       </div>
       <div class="tab-panel active" id="tab-overview">
         <div id="simResult" style="margin-top:10px;"></div>
+        <div id="rotationArea"></div>
+        <div id="simDetailsArea"></div>
       </div>
       <div class="tab-panel" id="tab-abilities">
         <div id="abilitiesArea"></div>
@@ -162,6 +183,9 @@
       </div>
       <div class="tab-panel" id="tab-buffs">
         <div id="buffsArea"></div>
+      </div>
+      <div class="tab-panel" id="tab-resources">
+        <div id="resourcesArea"></div>
       </div>
     </div>
   </div>
@@ -180,7 +204,7 @@
     import init, { simulate_dps, simulate_heal, simulate_dps_detail, simulate_hps_detail } from './pkg/wowforever.js';
     import {
       CLASS_LABELS, CLASS_ICONS, CLASS_SIM, DATA_PACK_PATH, getSavedBuilds, setSavedBuilds,
-      buildSimConfig,
+      buildSimConfig, MC_ITERATIONS, marginOfError, formatCompact, describeRotation, resourceSpentBreakdown,
     } from './talent-builds.js';
 
     const ICON_BASE = 'https://wow.zamimg.com/images/wow/icons/large/';
@@ -191,6 +215,7 @@
     let talentsById = {};
     let allocation = {};         // talent id -> current rank
     let dataPackRaw = null;
+    let dataPack = null;
 
     function pointsInTree(tree) {
       let sum = 0;
@@ -340,6 +365,8 @@
       const desc = document.getElementById('simDescription');
       const btn = document.getElementById('runSimBtn');
       document.getElementById('simResult').innerHTML = '';
+      document.getElementById('rotationArea').innerHTML = '';
+      document.getElementById('simDetailsArea').innerHTML = '';
       setResultTabsVisible(false);
       if (!sim.mode) {
         desc.innerHTML = `<strong>Not available for ${cls.label}:</strong> ${sim.reason}`;
@@ -355,7 +382,7 @@
         ? `<strong>Only ${effectIds.map((id) => talentsById[id]?.name || id).join(' and ')} currently feed into the simulation</strong> -- the rest of this build's points are tracked for planning only.`
         : `<strong>No talents in this tree currently feed into the simulation</strong> -- this engine hasn't mechanically modeled any ${cls.label} talent yet, so this shows baseline ${cls.label} output for the demo rotation regardless of your allocation, stated honestly rather than implied otherwise.`;
       const rotationDesc = sim.melee
-        ? `auto-attack (${sim.melee.weaponMin}-${sim.melee.weaponMax} weapon damage, ${sim.melee.weaponSpeedMs}ms speed, ${sim.melee.attackPower} attack power)${sim.rotation.length ? ' + ' + sim.rotation.join(' / ') : ''}`
+        ? `auto-attack (${sim.melee.weaponMin}-${sim.melee.weaponMax} weapon damage, ${sim.melee.weaponSpeedMs}ms speed, ${sim.melee.attackPower} attack power)${sim.rotation.length ? ' + ' + sim.rotation.join(' / ') : ''}${sim.melee.heroicStrikeSpellId ? ` + ${sim.melee.heroicStrikeSpellId.replace(/_/g, ' ')} (rage-gated, off the GCD)` : ''}`
         : `${sim.rotation.join(' / ')} at 350 spell power`;
       const meleeWarn = sim.note ? `<div class="warn" style="margin-bottom:8px;"><strong>⚠ Partial model:</strong> ${sim.note}</div>` : '';
       desc.innerHTML = `${meleeWarn}Uses the ${cls.label} demo rotation (${rotationDesc}), 20% crit, 60s. ${effectNote}
@@ -528,11 +555,84 @@
       area.innerHTML = `<div class="sub" style="margin-bottom:10px;">From the same representative run. This engine currently models exactly one such mechanic (Demonic Sacrifice) -- a build without it correctly shows nothing here, not a fabricated entry.</div>${rows}`;
     }
 
+    // Documentation-focused additions mirroring index.html's copy exactly
+    // -- see that file's own doc comments for the full reasoning; kept
+    // here too rather than only on one page, per the lesson from the
+    // Results-tabs feature once only reaching index.html.
+    function renderRotation(sim) {
+      const area = document.getElementById('rotationArea');
+      const desc = describeRotation(sim, dataPack);
+      if (!desc) { area.innerHTML = ''; return; }
+      const items = desc.priority.map((p) => `
+        <li><span class="pname">${p.rank}. ${p.name}</span><span class="phint">${p.hint}</span></li>
+      `).join('');
+      const offGcdHtml = desc.offGcd ? `
+        <div class="off-gcd-note">
+          <strong>${desc.offGcd.name}</strong> fires independently of this list whenever rage allows -- it does not use the global cooldown, so it isn't a numbered priority step. Simplified: rate-limited to roughly swing frequency rather than literally replacing one specific future swing; the numbered list above gets first claim on shared rage each decision, with this spending whatever is left over.
+        </div>` : '';
+      const emptyNote = !items && !offGcdHtml
+        ? `<div class="sub">No global-cooldown priority list or off-GCD ability for this build -- every point of damage comes from auto-attack alone.</div>`
+        : '';
+      area.innerHTML = `
+        <div class="subpanel">
+          <h3>Rotation</h3>
+          ${items ? `<div class="sub" style="margin-bottom:8px;">Checked from the top at each decision -- the first entry that's off cooldown, has an expired DoT (if any), and is affordable gets cast.</div>` : ''}
+          ${items ? `<ul class="priority-list">${items}</ul>` : ''}
+          ${offGcdHtml}
+          ${emptyNote}
+        </div>`;
+    }
+
+    function renderSimDetails(result, sim) {
+      const area = document.getElementById('simDetailsArea');
+      area.innerHTML = `
+        <div class="subpanel">
+          <h3>Simulation details</h3>
+          <div class="kv-grid">
+            <div><span>Fight duration</span><span>60s</span></div>
+            <div><span>Iterations</span><span>${MC_ITERATIONS.toLocaleString()}</span></div>
+            <div><span>Data pack</span><span><code>${result.data_pack_version}</code></span></div>
+            <div><span>Mode</span><span>${sim.mode === 'heal' ? 'HPS (healing)' : 'DPS (damage)'}</span></div>
+          </div>
+        </div>`;
+    }
+
+    function renderResources(detail) {
+      const area = document.getElementById('resourcesArea');
+      const spent = resourceSpentBreakdown(dataPack, detail.abilities);
+      const types = Object.keys(spent);
+      if (!types.length) {
+        area.innerHTML = `<em style="color:var(--muted)">This build has no resource constraint modeled (unconstrained mana, or rage not enabled) -- nothing to show here, not an omission.</em>`;
+        return;
+      }
+      const sections = types.map((type) => {
+        const t = spent[type];
+        const rows = t.byAbility.map((ab) => {
+          const pct = t.total > 0 ? (ab.amount / t.total) * 100 : 0;
+          return `
+            <div class="resource-row">
+              <div class="resource-row-label"><span>${ab.name}</span><span>${ab.amount.toFixed(0)} (${pct.toFixed(0)}%)</span></div>
+              <div class="resource-track"><div class="resource-fill" style="width:${pct.toFixed(1)}%"></div></div>
+            </div>`;
+        }).join('');
+        return `
+          <div class="subpanel">
+            <h3>${type} spent -- ${t.total.toFixed(0)} total</h3>
+            ${rows}
+          </div>`;
+      }).join('');
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:4px;">Spent per ability over the same representative run as the Abilities tab -- computed from each ability's real cast count and sourced resource cost. Scoped to *spent* only: a full gained-vs-spent economy (peak pool, time spent capped or empty) would need this engine's regen formula exposed to the frontend, not done yet.</div>
+        ${sections}`;
+    }
+
     document.getElementById('runSimBtn').addEventListener('click', () => {
       const cls = CLASSES.find((c) => c.id === currentClass);
       const sim = CLASS_SIM[cls.id];
       if (!sim.mode) return;
       setResultTabsVisible(false);
+      document.getElementById('rotationArea').innerHTML = '';
+      document.getElementById('simDetailsArea').innerHTML = '';
       const build = buildSimConfig(cls.id, allocation);
       const seed = 1;
       const resultJson = sim.mode === 'heal'
@@ -545,17 +645,20 @@
       const effectsHtml = Object.entries(sim.talentEffects)
         .map(([id]) => `${talentsById[id]?.name || id}: ${(allocation[id] || 0) > 0 ? 'active' : 'not taken'}`)
         .join(' &middot; ');
+      const moe = marginOfError(result);
       area.innerHTML = `
         <div class="stat">${result.mean.toFixed(1)} ${unit}</div>
         <div class="stat-row">
-          <div>stdev<br><strong style="color:var(--text)">${result.stdev.toFixed(1)}</strong></div>
-          <div>p5<br><strong style="color:var(--text)">${result.p5.toFixed(1)}</strong></div>
-          <div>p50<br><strong style="color:var(--text)">${result.p50.toFixed(1)}</strong></div>
-          <div>p95<br><strong style="color:var(--text)">${result.p95.toFixed(1)}</strong></div>
+          <div>Margin of error<br><strong style="color:var(--text)">&plusmn;${moe.margin.toFixed(2)} (${moe.pct.toFixed(2)}%)</strong></div>
+          <div>Range<br><strong style="color:var(--text)">${formatCompact(result.p5)} to ${formatCompact(result.p95)}</strong></div>
+          <div>Median<br><strong style="color:var(--text)">${result.p50.toFixed(1)}</strong></div>
+          <div>&sigma; (stdev)<br><strong style="color:var(--text)">${result.stdev.toFixed(1)}</strong></div>
         </div>
+        <div class="sub" style="margin-bottom:4px;">Margin of error is how precisely ${MC_ITERATIONS.toLocaleString()} iterations pin down the *mean* -- it stays small even when &sigma; (real fight-to-fight variance from crit RNG) is not; that's expected, not a contradiction. Range is the 5th-95th percentile spread across iterations.</div>
         ${effectsHtml ? `<div class="sub">${effectsHtml}</div>` : ''}
-        <div class="sub">Data pack: <code>${result.data_pack_version}</code></div>
       `;
+      renderRotation(sim);
+      renderSimDetails(result, sim);
 
       // Same build, same seed -- one representative run's full detail,
       // shown as a separate thing from the Monte Carlo summary above
@@ -568,6 +671,7 @@
         renderAbilities(detail);
         renderTimeline(detail);
         renderBuffs(detail);
+        renderResources(detail);
         setResultTabsVisible(true);
       }
     });
@@ -576,6 +680,7 @@
       await init();
       const resp = await fetch(DATA_PACK_PATH);
       dataPackRaw = await resp.text();
+      dataPack = JSON.parse(dataPackRaw);
       renderClassRow();
       await selectClass('warlock');
     }

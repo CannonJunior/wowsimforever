@@ -44,6 +44,19 @@ pub enum School {
     Nature,
 }
 
+/// Which resource pool a spell's `resource_cost` draws from. Added
+/// alongside the Warrior rage system (Plan Section 7) -- every spell
+/// sourced before this field existed is a caster spell costing mana, so
+/// `#[serde(default)]` resolving to `Mana` leaves every existing data-pack
+/// entry correct with no migration needed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResourceType {
+    #[default]
+    Mana,
+    Rage,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PetType {
@@ -80,6 +93,54 @@ pub struct DotDef {
     pub can_crit: bool,
 }
 
+/// A self-stacking buff a spell applies when cast (e.g. Arcane Blast,
+/// WoW Forever's October-15-patch rework): each cast adds a stack (up to
+/// `max_stacks`), boosting *other* damage-dealing spells' damage by
+/// `other_damage_pct_per_stack` per stack held -- never the stacking
+/// spell's own damage, per the sourced rule. The window lasts
+/// `duration_ms` from the *first* stack of a window, not refreshed by
+/// later casts within it (the post-October-15 behavior; the pre-patch
+/// version instead reset on any other damage spell being cast, which
+/// this project deliberately did not implement -- see
+/// `docs/PLAN.md`'s Arcane Mage update for the full sourcing history).
+/// The stacking spell's own `resource_cost` scales with the number of
+/// stacks already held before this cast (0-indexed): `cost = base * (1 +
+/// (own_cost_multiplier_per_stack - 1) * stacks)`, i.e. each stack adds a
+/// fixed fraction of the *base* cost, additively -- not `base *
+/// own_cost_multiplier_per_stack.powi(stacks)` (compounding/exponential),
+/// which is how an earlier revision of this engine mis-implemented the
+/// sourced "mana cost increases 175% per stack" rule and which produced
+/// an unplayable cost curve (4th-stack Arcane Blast costing ~11,000 mana
+/// against a 6,000 pool). Cross-checked 2026-10-18 against
+/// `wowsims/tbc`'s own open-source Arcane Blast implementation
+/// (`sim/mage/arcane_blast.go`), which computes real Blizzard-shipped
+/// stacking-ability costs the same additive way (`cost = base * (1 +
+/// 0.75 * numStacks)` for TBC's own 75%-per-stack figure) -- no WoW
+/// Blizzard-designed stacking-cost ability was found to compound
+/// exponentially, which would make a capped-at-4-stacks ability's last
+/// stack cost dozens of times the base, an implausible design. This is a
+/// structural engine-formula correction, not a change to the already-
+/// sourced 175%-per-stack figure itself (`own_cost_multiplier_per_stack`
+/// stays `2.75`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StackingBuffDef {
+    pub max_stacks: u32,
+    pub other_damage_pct_per_stack: f64,
+    pub own_cost_multiplier_per_stack: f64,
+    pub duration_ms: u32,
+}
+
+/// A flat, non-stacking timed buff a spell applies when cast (e.g.
+/// Arcane Power: +30% damage / +30% resource cost for 15s). The casting
+/// spell itself deals no damage (every damage-scaling field is `0.0` by
+/// construction for a spell that only has this).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimedDamageBuffDef {
+    pub duration_ms: u32,
+    pub damage_pct: f64,
+    pub cost_pct: f64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpellDef {
     pub id: String,
@@ -99,6 +160,38 @@ pub struct SpellDef {
     /// before this field existed.
     #[serde(default)]
     pub ap_coefficient: f64,
+    /// Which pool `resource_cost` draws from. `#[serde(default)]` ->
+    /// `Mana`, correct for every spell sourced before this field existed.
+    #[serde(default)]
+    pub resource_type: ResourceType,
+    /// Whether this spell's direct-hit damage rolls against the
+    /// equipped weapon's damage range (`BuildConfig::weapon_min/max`)
+    /// instead of `base_min/base_max` directly -- real melee "weapon
+    /// damage" abilities (Whirlwind, Heroic Strike) work this way, unlike
+    /// Bloodthirst's flat-plus-AP-percentage formula. When `true`,
+    /// `base_min`/`base_max` are added to the weapon roll as a flat bonus
+    /// (0 for Whirlwind, Heroic Strike's rank-9 157 for Heroic Strike)
+    /// rather than being the roll range themselves -- see
+    /// `wowforever_engine`'s `build_schedule` for where this is applied.
+    #[serde(default)]
+    pub uses_weapon_damage: bool,
+    /// Mana-pool scaling coefficient for this spell's direct component
+    /// (parallel to `coefficient`'s spell-power scaling and
+    /// `ap_coefficient`'s attack-power scaling) -- real abilities like
+    /// Arcane Wrath ("5% of maximum Mana" as bonus damage) scale with
+    /// the caster's mana pool stat itself, a third real scaling kind.
+    /// Multiplies `wowforever_engine::BuildConfig::max_mana`. `0.0` for
+    /// every spell sourced before this field existed.
+    #[serde(default)]
+    pub mana_coefficient: f64,
+    /// See `StackingBuffDef`'s doc comment (Arcane Blast). `None` for
+    /// every spell that doesn't apply a self-stacking buff.
+    #[serde(default)]
+    pub stacking_buff: Option<StackingBuffDef>,
+    /// See `TimedDamageBuffDef`'s doc comment (Arcane Power). `None` for
+    /// every spell that doesn't apply a flat timed damage buff.
+    #[serde(default)]
+    pub timed_buff: Option<TimedDamageBuffDef>,
     pub dot: Option<DotDef>,
     pub confidence: Confidence,
     pub source: Source,

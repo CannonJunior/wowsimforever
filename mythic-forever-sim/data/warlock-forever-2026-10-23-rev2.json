@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "pack_version": "warlock-forever-2026-10-23-rev2",
+  "client_build_reference": "1.60.1.70425 (via sage3648/mythicsim-forever-engine)",
+  "generated": "2026-10-23",
+  "provenance_note": "Mined from the MIT-licensed sage3648/mythicsim-forever-engine repository's own client-data extraction (data/spells.jsonl), which that project's NOTICE.md credits as derived from the WoW Forever beta client. Spot-checked against foreverdb.net (an independently-run WoW Forever client-data site, robots.txt-cleared for AI fetch) for shadow_bolt and immolate; both matched exactly. This pack shares no code or files with wowsimforever's own data-packs/ - it is an independent extraction for this separate project. Rev2 adds three pet/talent-mechanic entries (firebolt, lash_of_pain, demonic_brand_hit) mined from the same engine repository's prepare/export.rs, which carries them as literal Go-ported constants rather than auto-generated rows - see each entry's own source field.",
+  "known_conflicts": [
+    "The sibling wowsimforever project's docs/PLAN.md and data-packs/ (an unrelated, separate project in this same repo) recorded Shadow Bolt's max-rank average as 251 as of 2026-10-17/18, sourced from thewowdb.com at client build 1.60.1.70450. This pack's value (268, from build 1.60.1.70425, confirmed by two independent sources as of 2026-10-23) is HIGHER, not a rounding difference. Build 70450 postdates 70425, so this is most likely a genuine beta balance pass between those two builds, not a sourcing error on either side. Not resolved further since this pack does not depend on or reference that project's data.",
+    "firebolt's Go-literal source cites client build 1.60.1.70094, earlier than this pack's main spells mined from 1.60.1.70425 - the auto-generated table used for everything else has no pet-spell rows at all, so this is the best available source, not a build mismatch introduced by this pack's own mining."
+  ],
+  "spells": {
+    "shadow_bolt": {
+      "spell_id": 25307,
+      "rank": "Rank 10",
+      "school": 32,
+      "cast_time_ms": 3000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 380,
+      "max_range": 30,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 268,
+        "sp_coefficient": 0.8569999933242798,
+        "variance": 0.10980392247438431
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 25307. Cross-checked against foreverdb.net/spell/25307 on 2026-10-23: site shows \"253 to 283 Shadow damage\" (avg 268) and SPCoef 0.857 - exact match to mined base_points=268, sp_coefficient=0.857."
+    },
+    "immolate": {
+      "spell_id": 25309,
+      "rank": "Rank 8",
+      "school": 4,
+      "cast_time_ms": 2000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 380,
+      "max_range": 30,
+      "duration_ms": 15000,
+      "direct": {
+        "base_points": 158,
+        "sp_coefficient": 0.20000000298023224,
+        "variance": null
+      },
+      "periodic": {
+        "base_points_per_tick": 55,
+        "sp_coefficient": 0.12999999523162842,
+        "period_ms": 3000,
+        "num_ticks": 5
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 25309. Cross-checked against foreverdb.net/spell/25309 on 2026-10-23: site shows direct 158 Fire damage and \"275 Fire damage over 15 sec\" dot total, SPCoef 0.2 - exact match to mined direct base_points=158, periodic 55/tick x5 ticks=275, sp_coefficient=0.2.. Note: foreverdb.net labels this 'Rank 8' (its own rank count scheme for the 8 total Immolate ranks); this pack's ladder also has it as the 8th and final entry, so the numbering is consistent, not a conflict."
+    },
+    "corruption": {
+      "spell_id": 25311,
+      "rank": "Rank 7",
+      "school": 32,
+      "cast_time_ms": 2000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 340,
+      "max_range": 30,
+      "duration_ms": 18000,
+      "periodic": {
+        "base_points_per_tick": 73,
+        "sp_coefficient": 0.20000000298023224,
+        "period_ms": 3000,
+        "num_ticks": 6
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 25311"
+    },
+    "incinerate": {
+      "spell_id": 1293813,
+      "rank": "Rank 3",
+      "school": 4,
+      "cast_time_ms": 2500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 325,
+      "max_range": 30,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 217,
+        "sp_coefficient": 0.7139999866485596,
+        "variance": 0.15000000596046448
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 1293813"
+    },
+    "conflagrate": {
+      "spell_id": 18932,
+      "rank": "Rank 6",
+      "school": 4,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": 10000,
+      "mana_cost": 255,
+      "max_range": 30,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 282,
+        "sp_coefficient": 0.42899999022483826,
+        "variance": 0.21912351250648499
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 18932"
+    },
+    "shadowburn": {
+      "spell_id": 18871,
+      "rank": "Rank 6",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": 15000,
+      "mana_cost": 365,
+      "max_range": 30,
+      "duration_ms": 8000,
+      "direct": {
+        "base_points": 266,
+        "sp_coefficient": 0.42899999022483826,
+        "variance": 0.10924369841814041
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 18871. Note: direct-damage effect only extracted; a secondary aura effect (BasePoints=1) exists on the row but is not a damage-relevant field for this pack's purposes."
+    },
+    "searing_pain": {
+      "spell_id": 17923,
+      "rank": "Rank 6",
+      "school": 4,
+      "cast_time_ms": 1500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 168,
+      "max_range": 30,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 114,
+        "sp_coefficient": 0.42899999022483826,
+        "variance": 0.1621621549129486
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 17923"
+    },
+    "soul_fire": {
+      "spell_id": 17924,
+      "rank": "Rank 2",
+      "school": 4,
+      "cast_time_ms": 6000,
+      "gcd_ms": 1500,
+      "cooldown_ms": 60000,
+      "mana_cost": 335,
+      "max_range": 30,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 431,
+        "sp_coefficient": 1,
+        "variance": 0.22474747896194458
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 17924"
+    },
+    "life_tap": {
+      "spell_id": 11689,
+      "rank": "Rank 6",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": null,
+      "max_range": null,
+      "duration_ms": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 11689. Note: Powers field is {'Type': -2} (a resource-gain spell, not a cost) consistent with Life Tap converting health to mana rather than costing mana; base_points=420 is the flat mana returned at this rank before Spirit-based bonus, which this pack does not yet encode (talent/ formula TBD)."
+    },
+    "bane_of_agony": {
+      "spell_id": 11713,
+      "rank": "Rank 6",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 215,
+      "max_range": 30,
+      "duration_ms": 24000,
+      "periodic": {
+        "base_points_per_tick": 46,
+        "sp_coefficient": 0.13300000131130219,
+        "period_ms": 2000,
+        "num_ticks": 12
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 11713"
+    },
+    "bane_of_doom": {
+      "spell_id": 603,
+      "rank": null,
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": 60000,
+      "mana_cost": 300,
+      "max_range": 30,
+      "duration_ms": 60000,
+      "periodic": {
+        "base_points_per_tick": 1742,
+        "sp_coefficient": 4,
+        "period_ms": 60000,
+        "num_ticks": 1
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 603"
+    },
+    "siphon_life": {
+      "spell_id": 18881,
+      "rank": "Rank 4",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 365,
+      "max_range": 30,
+      "duration_ms": 30000,
+      "periodic": {
+        "base_points_per_tick": 41,
+        "sp_coefficient": 0.05000000074505806,
+        "period_ms": 3000,
+        "num_ticks": 10
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 18881"
+    },
+    "drain_life": {
+      "spell_id": 11700,
+      "rank": "Rank 6",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 300,
+      "max_range": 20,
+      "duration_ms": 5000,
+      "periodic": {
+        "base_points_per_tick": 51,
+        "sp_coefficient": 0.10000000149011612,
+        "period_ms": 1000,
+        "num_ticks": 5
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 11700"
+    },
+    "wrack": {
+      "spell_id": 1316697,
+      "rank": "Rank 1",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 200,
+      "max_range": 30,
+      "duration_ms": 6000,
+      "periodic": {
+        "base_points_per_tick": 36,
+        "sp_coefficient": 0.14300000667572021,
+        "period_ms": 1000,
+        "num_ticks": 6
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 1316697"
+    },
+    "curse_of_the_elements": {
+      "spell_id": 1311680,
+      "rank": "Rank 4",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 200,
+      "max_range": 30,
+      "duration_ms": 300000,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 1311680. Note: utility debuff, not a damage source; fields kept for completeness."
+    },
+    "curse_of_recklessness": {
+      "spell_id": 11717,
+      "rank": "Rank 4",
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 115,
+      "max_range": 30,
+      "duration_ms": 120000,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 11717. Note: utility debuff (armor reduction), not a damage source; fields kept for completeness."
+    },
+    "amplify_curse": {
+      "spell_id": 18288,
+      "rank": null,
+      "school": 32,
+      "cast_time_ms": null,
+      "gcd_ms": null,
+      "cooldown_ms": 180000,
+      "mana_cost": null,
+      "max_range": null,
+      "duration_ms": 30000,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), data/spells.jsonl, client build 1.60.1.70425, spell id 18288. Note: buff that empowers the next curse (modeled via Bane of Agony's amplify_share in the talent layer, not here)."
+    },
+    "firebolt": {
+      "spell_id": 11763,
+      "rank": "Rank 7 (pet - Imp)",
+      "school": 4,
+      "cast_time_ms": 2000,
+      "gcd_ms": null,
+      "cooldown_ms": 400,
+      "mana_cost": 115,
+      "max_range": null,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 44.0,
+        "sp_coefficient": 0.571,
+        "variance": 0.11363636702,
+        "_scaling_note": "base_points scales with character level via ppl=0.6/level above spell_level=58, capped at max_level=63; at CHARACTER_LEVEL=60 this averages to floor(44.0 + 2*0.6) = 45.0 before spell power. This engine's Rust code applies that pre-computed average (45.0) directly rather than re-deriving the level-scaling formula."
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), src/classes/warlock/prepare/export.rs imp_firebolt_effect() and src/prepare/character.rs CHARACTER_LEVEL=60 - a Go-ported literal the engine's own comment cites as 'client-verified beta 1.60.1.70094 11763' (an earlier build than this pack's main 1.60.1.70425, since the auto-generated spell table the rest of this pack was mined from has no pet-spell rows at all). Not independently cross-checked against a second site - foreverdb.net 404s for spell id 11763 (checked 2026-10-23). This replaces an earlier, genuinely-unsourced placeholder (100.0) that shipped in rev1's first implementation pass."
+    },
+    "lash_of_pain": {
+      "spell_id": 11780,
+      "rank": "Rank 6 (pet - Succubus)",
+      "school": 32,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": 12000,
+      "mana_cost": 160,
+      "max_range": null,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 50.0,
+        "sp_coefficient": 0.429,
+        "variance": null
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), src/classes/warlock/prepare/export.rs: 'pets.go registerLashOfPainSpell: a Go literal base' = 50.0; sp_coefficient 0.429 from prepare/pets.rs. Not independently cross-checked - foreverdb.net 404s for spell id 11780 (checked 2026-10-23). This engine does not yet simulate the Succubus (only the Imp) - this entry is kept for when that's added."
+    }
+  },
+  "pet_and_talent_mechanics": {
+    "demonic_brand_hit": {
+      "spell_id": null,
+      "_note": "Not a single client spell row - two pet-side ability IDs (1293698 Imp/Fire, 1293697 other demons/Shadow) sharing one damage formula, both constructed in Rust from the same Go literal.",
+      "school": null,
+      "cast_time_ms": 0,
+      "direct": {
+        "base_points_formula": "(CHARACTER_LEVEL - 26) * 1.5 + 14.0 (min) / + 17.0 (max), CHARACTER_LEVEL=60 -> 65.0/68.0",
+        "base_points_min": 65.0,
+        "base_points_max": 68.0,
+        "sp_coefficient": 0.078,
+        "variance": null
+      },
+      "charges_per_point": [
+        2,
+        4,
+        6
+      ],
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT license), src/classes/warlock/prepare/export.rs applyDemonicBrand export block, commented \"The hit's roll and spell power share are Go literals\" (talents_demonology.go). charges_per_point cross-checked against data/spell-extras.json curves['1293695'][1] = [2,4,6] - exact match. Never misses, always rolls on the crit table (Outcome::MagicCrit) per that same code's comment."
+    }
+  }
+}

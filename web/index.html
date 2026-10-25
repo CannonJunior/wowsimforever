@@ -6,66 +6,128 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><text y=%2224%22 font-size=%2224%22>⚔️</text></svg>">
 <style>
   :root {
-    --bg: #15151b; --panel: #1e1e27; --border: #33333f; --text: #e6e6ee; --muted: #9797a8;
-    --accent: #5b8cff;
+    --bg: #0b0b0d; --panel: #141418; --panel-raised: #191a1f; --border: #26262e; --border-soft: #1e1e25;
+    --text: #e9e9ee; --muted: #8c8c98; --muted-dim: #67676f;
+    --accent: #5b8cff; --flame: #e8862e; --flame-dim: #8a5a2e;
     --tier-live: #2fae5a; --tier-blue: #3b82f6; --tier-amber: #d9a224; --tier-red: #e0453f; --tier-teal: #22a2a2;
   }
   * { box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 24px; }
   h1 { font-size: 20px; margin: 0 0 4px; }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1100px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1180px; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-  .panel h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .panel h2 { font-size: 15px; margin: 0 0 10px; color: var(--text); font-weight: 600; }
   label { display: block; font-size: 12px; color: var(--muted); margin-top: 8px; }
-  select, button { font-size: 13px; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--border); background: #2a2a35; color: var(--text); }
+  select, button { font-size: 13px; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--border); background: #1c1c22; color: var(--text); }
   select { width: 100%; margin-top: 4px; }
   button { cursor: pointer; margin-top: 10px; margin-right: 6px; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button:hover { filter: brightness(1.1); }
+  button:hover { filter: brightness(1.15); }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #0a0a0a; margin-right: 6px; margin-bottom: 4px; }
   .tier-live-confirmed { background: var(--tier-live); }
   .tier-dev-blue-post { background: var(--tier-teal); }
   .tier-beta-datamine { background: var(--tier-blue); color: #fff; }
   .tier-community-reported { background: var(--tier-amber); }
   .tier-community-disputed, .tier-placeholder { background: var(--tier-red); color: #fff; }
-  .warn { background: #3a1f1f; border: 1px solid var(--tier-red); border-radius: 6px; padding: 8px 10px; margin: 8px 0; font-size: 13px; }
-  .stat { font-size: 26px; font-weight: 700; }
-  .stat-row { display: flex; gap: 18px; margin: 8px 0 14px; flex-wrap: wrap; }
-  .stat-row div { font-size: 12px; color: var(--muted); }
+  .warn { background: #241512; border-left: 3px solid var(--flame); border-radius: 4px; padding: 8px 12px; margin: 8px 0; font-size: 13px; }
   table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
-  td, th { padding: 4px 6px; border-bottom: 1px solid var(--border); text-align: left; }
-  code { background: #2a2a35; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-  #sequence div { font-family: monospace; font-size: 12px; }
-  .identity { font-family: monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+  td, th { padding: 4px 6px; border-bottom: 1px solid var(--border-soft); text-align: left; }
+  code { background: #1c1c22; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  #sequence div { font-family: ui-monospace, monospace; font-size: 12px; }
+  .identity { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
 
   .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: 8px 0 14px; }
   .tab-btn {
     background: transparent; border: none; border-radius: 6px 6px 0 0; color: var(--muted);
     padding: 7px 14px; font-size: 13px; cursor: pointer; margin: 0;
   }
-  .tab-btn.active { background: #262632; color: var(--text); font-weight: 600; }
+  .tab-btn.active { background: var(--panel-raised); color: var(--text); font-weight: 600; }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
-  .ability-bar-track { background: #2a2a35; border-radius: 3px; height: 6px; width: 100%; overflow: hidden; }
-  .ability-bar-fill { height: 100%; border-radius: 3px; }
-  .ability-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .ability-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; flex: none; }
 
-  .timeline-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: #181820; }
+  /* -- Hero stat header (Overview tab) -- */
+  .hero { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .hero-icon { width: 44px; height: 44px; border-radius: 8px; background: var(--panel-raised); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; overflow: hidden; }
+  .hero-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .hero-id { flex: 1; min-width: 180px; }
+  .hero-id .name { font-size: 16px; font-weight: 700; }
+  .hero-id .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .hero-stat { display: flex; align-items: baseline; gap: 8px; padding-right: 24px; border-right: 1px solid var(--border); margin-right: 4px; }
+  .hero-stat .num { font-size: 42px; font-weight: 700; color: var(--flame); line-height: 1; }
+  .hero-stat .unit { font-size: 13px; color: var(--muted); }
+  .hero-facts { display: flex; gap: 22px; flex-wrap: wrap; }
+  .hero-fact { font-size: 12px; color: var(--muted); }
+  .hero-fact strong { display: block; font-size: 14px; color: var(--text); font-weight: 600; margin-top: 2px; }
+
+  /* -- Generic bar-with-value row, reused by Abilities/Resources/Buffs -- */
+  .bar-track { position: relative; height: 6px; background: #222229; border-radius: 3px; overflow: hidden; }
+  .bar-fill { position: absolute; top: 0; left: 0; bottom: 0; border-radius: 3px; }
+
+  /* -- Ability breakdown table -- */
+  .ability-table td, .ability-table th { border-bottom: 1px solid var(--border-soft); padding: 8px 10px; vertical-align: middle; }
+  .ability-table th { color: var(--muted); font-weight: 500; font-size: 11px; }
+  .ability-name-cell { display: flex; align-items: flex-start; gap: 0; min-width: 150px; }
+  .ability-name-cell .names { display: flex; flex-direction: column; }
+  .ability-name-cell .pname { font-weight: 600; font-size: 13px; }
+  .ability-name-cell .psub { color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .cellbar-value { font-weight: 600; font-size: 13px; }
+  .cellbar-wrap { min-width: 110px; }
+  .cellbar-wrap .bar-track { margin-top: 4px; }
+  .share-wrap { min-width: 80px; }
+  .share-wrap .bar-track { height: 4px; margin-top: 4px; background: #1c1c22; }
+
+  /* -- Timeline -- */
+  .timeline-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--panel-raised); }
   .timeline-axis { position: relative; height: 22px; border-bottom: 1px solid var(--border); font-size: 10px; color: var(--muted); }
   .timeline-axis span { position: absolute; top: 4px; transform: translateX(-50%); }
-  .timeline-row { position: relative; height: 28px; border-bottom: 1px solid #22222c; display: flex; align-items: center; }
-  .timeline-row-label { position: sticky; left: 0; width: 140px; flex: 0 0 140px; padding: 0 8px; font-size: 11px; color: var(--muted); background: #181820; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+  .timeline-row { position: relative; height: 28px; border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; }
+  .timeline-row:nth-child(odd) { background: rgba(255,255,255,.012); }
+  .timeline-row-label { position: sticky; left: 0; width: 150px; flex: 0 0 150px; padding: 0 10px; font-size: 11px; color: var(--muted); background: var(--panel-raised); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; display: flex; align-items: center; }
   .timeline-row-track { position: relative; flex: 1; height: 100%; min-width: 600px; }
   .timeline-mark {
-    position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%;
-    transform: translate(-50%, -50%); cursor: default;
+    position: absolute; top: 50%; width: 6px; height: 6px; border-radius: 50%;
+    transform: translate(-50%, -50%); cursor: default; opacity: .85;
   }
-  .timeline-mark.crit { width: 10px; height: 10px; box-shadow: 0 0 4px 1px currentColor; }
-  .buff-row { margin-bottom: 10px; }
-  .buff-row-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
-  .buff-track { position: relative; height: 16px; background: #2a2a35; border-radius: 4px; overflow: hidden; }
-  .buff-fill { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .7; }
+  .timeline-mark.crit { width: 9px; height: 9px; box-shadow: 0 0 5px 1px currentColor; opacity: 1; }
+
+  /* -- Buffs & debuffs: two-column proc/debuff lists -- */
+  .buff-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+  @media (max-width: 760px) { .buff-cols { grid-template-columns: 1fr; } }
+  .buff-col-title { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .buff-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+  .buff-row:last-child { border-bottom: none; }
+  .buff-row .bname { flex: 0 0 128px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
+  .buff-row .bar-track { flex: 1; height: 6px; }
+  .buff-row .bstats { flex: 0 0 auto; display: flex; gap: 10px; font-size: 12px; min-width: 100px; justify-content: flex-end; }
+  .buff-row .bstats .bpct { color: var(--text); font-weight: 600; width: 42px; text-align: right; }
+  .buff-row .bstats .bcount { color: var(--muted); width: 44px; text-align: right; }
+
+  .subpanel { background: var(--panel-raised); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; margin-top: 14px; }
+  .subpanel h3 { font-size: 13px; margin: 0 0 10px; color: var(--text); font-weight: 600; }
+  .priority-list { list-style: none; margin: 0; padding: 0; counter-reset: priority; }
+  .priority-list li { counter-increment: priority; display: flex; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
+  .priority-list li:last-child { border-bottom: none; }
+  .priority-list li::before { content: counter(priority); flex: 0 0 18px; height: 18px; border-radius: 50%; background: #222229; color: var(--muted); font-size: 11px; text-align: center; line-height: 18px; }
+  .priority-list .pname { font-weight: 600; }
+  .priority-list .phint { color: var(--muted); font-size: 12px; }
+  .off-gcd-note { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--muted); }
+  .off-gcd-note strong { color: var(--text); }
+  .kv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 20px; font-size: 12px; }
+  .kv-grid div span:first-child { display: block; color: var(--muted); }
+  .kv-grid div span:last-child { font-size: 13px; }
+
+  /* -- Resources -- */
+  .resource-section + .resource-section { margin-top: 16px; }
+  .resource-section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .resource-section-head .rname { font-size: 13px; font-weight: 600; }
+  .resource-section-head .rtotal { font-size: 12px; color: var(--muted); }
+  .resource-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .resource-row .rname2 { flex: 0 0 150px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
+  .resource-row .bar-track { flex: 1; height: 8px; }
+  .resource-row .ramount { flex: 0 0 auto; width: 92px; text-align: right; font-size: 12px; }
+  .resource-row .ramount .pct { color: var(--muted); margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -106,9 +168,12 @@
         <button class="tab-btn" data-tab="abilities">Abilities</button>
         <button class="tab-btn" data-tab="timeline">Timeline</button>
         <button class="tab-btn" data-tab="buffs">Buffs &amp; Debuffs</button>
+        <button class="tab-btn" data-tab="resources">Resources</button>
       </div>
       <div class="tab-panel active" id="tab-overview">
         <div id="resultArea"><em style="color:var(--muted)">Run a simulation to see results here.</em></div>
+        <div id="rotationArea"></div>
+        <div id="simDetailsArea"></div>
       </div>
       <div class="tab-panel" id="tab-abilities">
         <div id="abilitiesArea"></div>
@@ -118,6 +183,9 @@
       </div>
       <div class="tab-panel" id="tab-buffs">
         <div id="buffsArea"></div>
+      </div>
+      <div class="tab-panel" id="tab-resources">
+        <div id="resourcesArea"></div>
       </div>
     </div>
 
@@ -133,8 +201,11 @@
   <script type="module">
     import init, { simulate_dps, simulate_burst, simulate_heal, simulate_dps_detail, simulate_hps_detail } from './pkg/wowforever.js';
     import {
-      CLASS_LABELS, CLASS_SIM, DEMO_ALLOCATION, DATA_PACK_PATH, getSavedBuilds, buildSimConfig, buildBurstConfig,
+      CLASS_LABELS, CLASS_ICONS, CLASS_SIM, DEMO_ALLOCATION, DATA_PACK_PATH, getSavedBuilds, buildSimConfig, buildBurstConfig,
+      MC_ITERATIONS, marginOfError, formatCompact, describeRotation, resourceSpentBreakdown,
     } from './talent-builds.js';
+
+    const ICON_BASE = 'https://wow.zamimg.com/images/wow/icons/large/';
 
     const TIER_CLASS = {
       'live-confirmed': 'tier-live-confirmed',
@@ -180,7 +251,7 @@
         const sim = CLASS_SIM[classId];
         const opt = document.createElement('option');
         opt.value = `demo:${classId}`;
-        const rotationLabel = sim.melee ? 'auto-attack only' : sim.rotation.join(' / ');
+        const rotationLabel = sim.melee && sim.rotation.length === 0 ? 'auto-attack only' : sim.rotation.join(' / ');
         opt.textContent = sim.mode ? `${CLASS_LABELS[classId]} -- ${rotationLabel}` : `${CLASS_LABELS[classId]} -- not runnable yet`;
         opt.disabled = !sim.mode;
         demoGroup.appendChild(opt);
@@ -301,26 +372,40 @@
       }
       const totalDamage = detail.abilities.reduce((a, ab) => a + ab.total_damage, 0);
       const fightS = detail.fight_duration_ms / 1000;
-      const rows = detail.abilities.map((ab) => {
+      const sorted = detail.abilities.slice().sort((a, b) => b.total_damage - a.total_damage);
+      const maxDps = Math.max(...sorted.map((ab) => ab.total_damage / fightS));
+      const rows = sorted.map((ab) => {
+        const dps = ab.total_damage / fightS;
         const share = totalDamage > 0 ? (ab.total_damage / totalDamage) * 100 : 0;
         const critPct = ab.crit_eligible > 0 ? (ab.crits / ab.crit_eligible) * 100 : null;
+        const color = colorFor(ab.source_id);
         return `
           <tr>
-            <td><span class="ability-swatch" style="background:${colorFor(ab.source_id)}"></span>${labelFor(ab.source_id, ab.kind)}</td>
-            <td>${(ab.total_damage / fightS).toFixed(1)}</td>
-            <td style="min-width:90px;">
-              <div class="ability-bar-track"><div class="ability-bar-fill" style="width:${share.toFixed(1)}%; background:${colorFor(ab.source_id)}"></div></div>
-              <div style="font-size:11px; color:var(--muted); margin-top:2px;">${share.toFixed(1)}%</div>
+            <td>
+              <div class="ability-name-cell">
+                <span class="ability-swatch" style="background:${color}; margin-top:4px;"></span>
+                <div class="names">
+                  <span class="pname">${labelFor(ab.source_id, ab.kind)}</span>
+                  <span class="psub">${critPct === null ? 'no crit roll' : `Crit ${critPct.toFixed(1)}%`}</span>
+                </div>
+              </div>
+            </td>
+            <td class="cellbar-wrap">
+              <span class="cellbar-value">${dps.toFixed(1)}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${maxDps > 0 ? (dps / maxDps) * 100 : 0}%; background:${color};"></div></div>
+            </td>
+            <td class="share-wrap">
+              ${share.toFixed(1)}%
+              <div class="bar-track"><div class="bar-fill" style="width:${share.toFixed(1)}%; background:${color};"></div></div>
             </td>
             <td>${ab.casts}</td>
             <td>${(ab.total_damage / ab.casts).toFixed(1)}</td>
-            <td>${critPct === null ? '—' : critPct.toFixed(1) + '%'}</td>
           </tr>`;
       }).join('');
       area.innerHTML = `
         <div class="sub" style="margin-bottom:8px;">One representative simulated run (seed-fixed), not an average across iterations -- real sim tools report these two things separately since you can't average "which rolls crit" into one coherent log. DPS/HPS and casts here are from this one run; the Overview tab's stats are the real Monte Carlo aggregate across 10,000 runs.</div>
-        <table>
-          <thead><tr><th>Ability</th><th>DPS</th><th>Share</th><th>Casts</th><th>Avg / Cast</th><th>Crit %</th></tr></thead>
+        <table class="ability-table">
+          <thead><tr><th>Ability</th><th>DPS</th><th>Share</th><th>Casts</th><th>Per cast</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       `;
@@ -368,22 +453,106 @@
       }
       const fightMs = detail.fight_duration_ms;
       const rows = detail.buffs.map((b) => {
-        const leftPct = (b.start_ms / fightMs) * 100;
-        const widthPct = ((b.end_ms - b.start_ms) / fightMs) * 100;
         const uptimePct = ((b.end_ms - b.start_ms) / fightMs) * 100;
+        const color = colorFor(b.name.toLowerCase().replace(/\s+/g, '_'));
         return `
-          <div class="buff-row">
-            <div class="buff-row-label"><span>${b.name}</span><span>${uptimePct.toFixed(0)}% uptime (${(b.start_ms/1000).toFixed(1)}s&ndash;${(b.end_ms/1000).toFixed(1)}s)</span></div>
-            <div class="buff-track"><div class="buff-fill" style="left:${leftPct}%; width:${widthPct}%;"></div></div>
+          <div class="buff-row" title="${uptimePct.toFixed(1)}% uptime, active ${(b.start_ms/1000).toFixed(1)}s&ndash;${(b.end_ms/1000).toFixed(1)}s">
+            <span class="bname"><span class="ability-swatch" style="background:${color}"></span>${b.name}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${uptimePct.toFixed(1)}%; background:${color};"></div></div>
+            <span class="bstats"><span class="bpct">${uptimePct.toFixed(0)}%</span></span>
           </div>`;
       }).join('');
-      area.innerHTML = `<div class="sub" style="margin-bottom:10px;">From the same representative run. This engine currently models exactly one such mechanic (Demonic Sacrifice) -- a build without it correctly shows nothing here, not a fabricated entry.</div>${rows}`;
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:12px;">From the same representative run. This engine currently models exactly one such mechanic (Demonic Sacrifice) -- a build without it correctly shows nothing here, not a fabricated entry. Hover a bar for its exact active window.</div>
+        <div class="buff-col-title">Buffs &amp; debuffs</div>
+        ${rows}`;
+    }
+
+    // Documentation-focused additions inspired by a real sim tool's result
+    // page (mythicsim.com): a readable rotation-priority list, a
+    // methodology/"simulation details" panel, and a resource-spent
+    // breakdown -- all computed from data this page already has, no
+    // engine change needed (see talent-builds.js's own doc comments for
+    // why each is honestly scoped the way it is).
+    function renderRotation(sim) {
+      const area = document.getElementById('rotationArea');
+      const desc = describeRotation(sim, dataPack);
+      if (!desc) { area.innerHTML = ''; return; }
+      const items = desc.priority.map((p) => `
+        <li><span class="pname">${p.rank}. ${p.name}</span><span class="phint">${p.hint}</span></li>
+      `).join('');
+      const offGcdHtml = desc.offGcd ? `
+        <div class="off-gcd-note">
+          <strong>${desc.offGcd.name}</strong> fires independently of this list whenever rage allows -- it does not use the global cooldown, so it isn't a numbered priority step. Simplified: rate-limited to roughly swing frequency rather than literally replacing one specific future swing; the numbered list above gets first claim on shared rage each decision, with this spending whatever is left over.
+        </div>` : '';
+      const emptyNote = !items && !offGcdHtml
+        ? `<div class="sub">No global-cooldown priority list or off-GCD ability for this build -- every point of damage comes from auto-attack alone.</div>`
+        : '';
+      area.innerHTML = `
+        <div class="subpanel">
+          <h3>Rotation</h3>
+          ${items ? `<div class="sub" style="margin-bottom:8px;">Checked from the top at each decision -- the first entry that's off cooldown, has an expired DoT (if any), and is affordable gets cast.</div>` : ''}
+          ${items ? `<ul class="priority-list">${items}</ul>` : ''}
+          ${offGcdHtml}
+          ${emptyNote}
+        </div>`;
+    }
+
+    function renderSimDetails(result, sim) {
+      const area = document.getElementById('simDetailsArea');
+      area.innerHTML = `
+        <div class="subpanel">
+          <h3>Simulation details</h3>
+          <div class="kv-grid">
+            <div><span>Fight duration</span><span>60s</span></div>
+            <div><span>Iterations</span><span>${MC_ITERATIONS.toLocaleString()}</span></div>
+            <div><span>Data pack</span><span><code>${result.data_pack_version}</code></span></div>
+            <div><span>Mode</span><span>${sim.mode === 'heal' ? 'HPS (healing)' : 'DPS (damage)'}</span></div>
+          </div>
+        </div>`;
+    }
+
+    function renderResources(detail) {
+      const area = document.getElementById('resourcesArea');
+      const spent = resourceSpentBreakdown(dataPack, detail.abilities);
+      const types = Object.keys(spent);
+      if (!types.length) {
+        area.innerHTML = `<em style="color:var(--muted)">This build has no resource constraint modeled (unconstrained mana, or rage not enabled) -- nothing to show here, not an omission.</em>`;
+        return;
+      }
+      const sections = types.map((type) => {
+        const t = spent[type];
+        const maxAmount = Math.max(...t.byAbility.map((ab) => ab.amount));
+        const rows = t.byAbility.map((ab) => {
+          const pct = t.total > 0 ? (ab.amount / t.total) * 100 : 0;
+          const color = colorFor(ab.id);
+          return `
+            <div class="resource-row">
+              <span class="rname2"><span class="ability-swatch" style="background:${color}"></span>${ab.name}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${maxAmount > 0 ? (ab.amount / maxAmount) * 100 : 0}%; background:${color};"></div></div>
+              <span class="ramount">${ab.amount.toFixed(0)}<span class="pct">${pct.toFixed(0)}%</span></span>
+            </div>`;
+        }).join('');
+        return `
+          <div class="resource-section">
+            <div class="resource-section-head">
+              <span class="rname">${type[0].toUpperCase()}${type.slice(1)}</span>
+              <span class="rtotal">${t.total.toFixed(0)} spent total</span>
+            </div>
+            ${rows}
+          </div>`;
+      }).join('');
+      area.innerHTML = `
+        <div class="sub" style="margin-bottom:14px;">Spent per ability over the same representative run as the Abilities tab -- computed from each ability's real cast count and sourced resource cost. Scoped to *spent* only: a full gained-vs-spent economy (peak pool, time spent capped or empty) would need this engine's regen formula exposed to the frontend, not done yet.</div>
+        ${sections}`;
     }
 
     async function runDps() {
       const sel = resolveSelection();
       const area = document.getElementById('resultArea');
       setResultTabsVisible(false);
+      document.getElementById('rotationArea').innerHTML = '';
+      document.getElementById('simDetailsArea').innerHTML = '';
       if (!sel) { area.innerHTML = `<div class="warn">No build selected.</div>`; return; }
       const sim = CLASS_SIM[sel.classId];
       if (!sim.mode) { area.innerHTML = `<div class="warn">${sim.reason}</div>`; return; }
@@ -416,23 +585,35 @@
         ? `<div class="sub" style="margin-top:6px;">Talent effects applied: ${talentEffectIds.map((id) => `${id.replace(/_/g, ' ')}: ${(sel.allocation[id] || 0) > 0 ? 'active' : 'not taken'}`).join(' &middot; ')}</div>`
         : (sim.note ? '' : `<div class="sub" style="margin-top:6px;">No ${CLASS_LABELS[sel.classId]} talents are wired into the engine yet -- this number reflects the demo rotation only, regardless of this build's allocation.</div>`);
 
+      const moe = marginOfError(result);
+      const iconId = CLASS_ICONS[sel.classId];
+
       area.innerHTML = `
-        <div class="stat">${result.mean.toFixed(1)} ${unit}</div>
-        <div class="stat-row">
-          <div>stdev<br><strong style="color:var(--text)">${result.stdev.toFixed(1)}</strong></div>
-          <div>p5<br><strong style="color:var(--text)">${result.p5.toFixed(1)}</strong></div>
-          <div>p50<br><strong style="color:var(--text)">${result.p50.toFixed(1)}</strong></div>
-          <div>p95<br><strong style="color:var(--text)">${result.p95.toFixed(1)}</strong></div>
+        <div class="hero">
+          <div class="hero-icon">${iconId ? `<img src="${ICON_BASE}${iconId}.jpg" alt="" onerror="this.src='${ICON_BASE}inv_misc_questionmark.jpg'">` : '⚔️'}</div>
+          <div class="hero-id">
+            <div class="name">${sel.label}</div>
+            <div class="meta">${CLASS_LABELS[sel.classId] || sel.classId} &middot; ${sim.mode === 'heal' ? 'Healing simulation' : 'Damage simulation'}</div>
+          </div>
+          <div class="hero-stat"><span class="num">${result.mean.toFixed(1)}</span><span class="unit">${unit}</span></div>
+          <div class="hero-facts">
+            <div class="hero-fact">Margin of error<strong>&plusmn;${moe.margin.toFixed(2)} (${moe.pct.toFixed(2)}%)</strong></div>
+            <div class="hero-fact">Range<strong>${formatCompact(result.p5)} to ${formatCompact(result.p95)}</strong></div>
+            <div class="hero-fact">Median<strong>${result.p50.toFixed(1)}</strong></div>
+            <div class="hero-fact">&sigma; (stdev)<strong>${result.stdev.toFixed(1)}</strong></div>
+          </div>
         </div>
+        <div class="sub" style="margin-bottom:4px;">Margin of error is how precisely ${MC_ITERATIONS.toLocaleString()} iterations pin down the *mean* -- it stays small even when &sigma; (real fight-to-fight variance from crit RNG) is not; that's expected, not a contradiction. Range is the 5th-95th percentile spread across iterations.</div>
         ${disputeHtml}
         <div>${confidenceBadges(sim.rotation)}</div>
         ${healNote}
         ${meleeWarn}
         ${talentNote}
-        <div class="sub" style="margin-top:8px;">Data pack: <code>${result.data_pack_version}</code></div>
       `;
 
       appendHistory({ at: Date.now(), build: sel.label + ' ' + unit, dataPackVersion: result.data_pack_version, value: result.mean });
+      renderRotation(sim);
+      renderSimDetails(result, sim);
 
       // Same build, same seed -- one representative run's full detail,
       // a genuinely different (not averaged) kind of output from the
@@ -446,6 +627,7 @@
         renderAbilities(detail);
         renderTimeline(detail);
         renderBuffs(detail);
+        renderResources(detail);
         setResultTabsVisible(true);
       }
     }
@@ -454,6 +636,8 @@
       const sel = resolveSelection();
       const area = document.getElementById('resultArea');
       setResultTabsVisible(false); // the Abilities/Timeline/Buffs detail is DPS/HPS-only -- not computed for burst
+      document.getElementById('rotationArea').innerHTML = '';
+      document.getElementById('simDetailsArea').innerHTML = '';
       if (!sel) { area.innerHTML = `<div class="warn">No build selected.</div>`; return; }
       const sim = CLASS_SIM[sel.classId];
       const burstConfig = buildBurstConfig(sel.classId, sel.allocation);
@@ -473,13 +657,21 @@
         return;
       }
       const seqHtml = result.sequence.map(([t, id]) => `<div>t=${String(t).padStart(6)}ms  ${id}</div>`).join('');
+      const iconId = CLASS_ICONS[sel.classId];
       area.innerHTML = `
-        <div class="stat">${result.expected_damage.toFixed(1)} expected damage</div>
-        <div class="stat-row">
-          <div>Monte Carlo mean<br><strong style="color:var(--text)">${result.mc_mean.toFixed(1)}</strong></div>
-          <div>p5<br><strong style="color:var(--text)">${result.mc_p5.toFixed(1)}</strong></div>
-          <div>p95<br><strong style="color:var(--text)">${result.mc_p95.toFixed(1)}</strong></div>
-          <div>Guaranteed floor<br><strong style="color:var(--text)">${result.guaranteed_floor.toFixed(1)}</strong></div>
+        <div class="hero">
+          <div class="hero-icon">${iconId ? `<img src="${ICON_BASE}${iconId}.jpg" alt="" onerror="this.src='${ICON_BASE}inv_misc_questionmark.jpg'">` : '⚔️'}</div>
+          <div class="hero-id">
+            <div class="name">${sel.label}</div>
+            <div class="meta">${CLASS_LABELS[sel.classId] || sel.classId} &middot; 15s burst window</div>
+          </div>
+          <div class="hero-stat"><span class="num">${result.expected_damage.toFixed(1)}</span><span class="unit">expected dmg</span></div>
+          <div class="hero-facts">
+            <div class="hero-fact">Monte Carlo mean<strong>${result.mc_mean.toFixed(1)}</strong></div>
+            <div class="hero-fact">p5<strong>${result.mc_p5.toFixed(1)}</strong></div>
+            <div class="hero-fact">p95<strong>${result.mc_p95.toFixed(1)}</strong></div>
+            <div class="hero-fact">Guaranteed floor<strong>${result.guaranteed_floor.toFixed(1)}</strong></div>
+          </div>
         </div>
         <div class="sub">${result.provably_optimal ? 'PROVABLY OPTIMAL (search never had to prune)' : 'Best found under search budget, not guaranteed optimal'}</div>
         <div id="sequence" style="margin-top:8px;">${seqHtml}</div>

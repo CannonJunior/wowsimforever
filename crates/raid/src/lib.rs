@@ -200,6 +200,11 @@ mod tests {
                 base_max: 251.0,
                 coefficient: 0.857,
                 ap_coefficient: 0.0,
+                resource_type: wowforever_data::ResourceType::Mana,
+                uses_weapon_damage: false,
+                mana_coefficient: 0.0,
+                stacking_buff: None,
+                timed_buff: None,
                 dot: None,
                 confidence: Confidence::CommunityReported,
                 source: Source { name: "test".into(), url: None },
@@ -231,6 +236,10 @@ mod tests {
                 weapon_min: 0.0,
                 weapon_max: 0.0,
                 weapon_speed_ms: 0,
+                rage_enabled: false,
+                is_two_handed: false,
+                heroic_strike_spell_id: None,
+                max_mana: 0.0,
             },
         }
     }
@@ -323,6 +332,11 @@ mod tests {
             base_max: 100.0, // fixed, no range, for hand-computable totals
             coefficient: 0.0, // spell_power irrelevant to this test
             ap_coefficient: 0.0,
+            resource_type: wowforever_data::ResourceType::Mana,
+            uses_weapon_damage: false,
+            mana_coefficient: 0.0,
+            stacking_buff: None,
+            timed_buff: None,
             dot: None,
             confidence: Confidence::CommunityReported,
             source: Source { name: "test".into(), url: None },
@@ -365,6 +379,10 @@ mod tests {
                 weapon_min: 0.0,
                 weapon_max: 0.0,
                 weapon_speed_ms: 0,
+                rage_enabled: false,
+                is_two_handed: false,
+                heroic_strike_spell_id: None,
+                max_mana: 0.0,
             },
         }
     }

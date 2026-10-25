@@ -185,6 +185,19 @@ pub fn parse_spell_page(html: &str, id: &str, name: &str, source_url: &str) -> R
         // guess. Attack-power-scaling abilities (Bloodthirst etc.) are
         // sourced by hand into the data pack, not through this tool.
         ap_coefficient: 0.0,
+        // This tool only ever extracts caster spell-power-cost data from
+        // thewowdb.com; attack-power/weapon-damage-scaling abilities
+        // (Bloodthirst, Whirlwind, Heroic Strike etc.) are sourced and
+        // entered by hand, not through this tool.
+        resource_type: wowforever_data::ResourceType::Mana,
+        uses_weapon_damage: false,
+        // thewowdb.com's extracted pages don't cite mana-pool-scaling or
+        // stacking/timed-buff mechanics -- those are sourced and entered
+        // by hand (e.g. Arcane Wrath, Arcane Blast, Arcane Power), not
+        // through this tool.
+        mana_coefficient: 0.0,
+        stacking_buff: None,
+        timed_buff: None,
         dot,
         confidence: Confidence::BetaDatamine,
         source: Source {

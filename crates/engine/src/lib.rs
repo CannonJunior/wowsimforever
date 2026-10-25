@@ -24,7 +24,7 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use wowforever_data::{DataPack, School};
+use wowforever_data::{DataPack, ResourceType, School, StackingBuffDef, TimedDamageBuffDef};
 pub use wowforever_data::PetType;
 pub use wowforever_stats::{stats_from, DpsStats};
 
@@ -47,6 +47,159 @@ const GCD_MS: u32 = 1500;
 /// belongs in the data pack in a later iteration, not hard-coded here
 /// permanently.
 const CRIT_MULTIPLIER: f64 = 1.5;
+
+/// Classic-style rage cap. No WoW-Forever-specific change to this value
+/// was found during research (2026-10-18); treated as a documented
+/// engine-level constant like `GCD_MS`/`CRIT_MULTIPLIER` above, not
+/// individually re-verified for Forever.
+const RAGE_CAP: f64 = 100.0;
+
+/// WoW Forever reworked rage generation (sourced 2026-10-18, multiple
+/// independent WebSearch passes agreeing: icy-veins.com, kami-labs.fr,
+/// wowsod.pro, indiekings.com): rage per successful auto-attack swing is
+/// normalized by the weapon's base speed and handedness only, *not* by
+/// damage dealt (a deliberate departure from Classic's damage-based
+/// formula) -- one-handed weapons generate `speed_seconds * 3.46` rage
+/// per hit, two-handed `speed_seconds * 4.50`, and critical swings grant
+/// +100% rage.
+const RAGE_PER_SPEED_SECOND_ONE_HANDED: f64 = 3.46;
+const RAGE_PER_SPEED_SECOND_TWO_HANDED: f64 = 4.50;
+
+/// Expected rage generated per second of auto-attacking, given the
+/// sourced per-swing formula above. This engine models rage as a
+/// smoothly-regenerating per-second rate (the same simplification
+/// `mana_regen_per_second` already uses instead of Classic's real
+/// spirit-based regen-with-the-5-second-rule) rather than discrete bursts
+/// timed to individual swings -- deliberately not threading rage
+/// generation through the RNG-dependent crit roll, which would make the
+/// deterministic build-once/replay-many-seeds schedule this engine
+/// relies on elsewhere (see `build_schedule`'s doc comment) depend on
+/// per-iteration randomness instead. `crit_chance` is used as its
+/// *expected* contribution, not a per-swing coin flip.
+///
+/// Interesting side-finding worth recording: expanding the algebra,
+/// `(speed_s * K) * (1 + crit) / speed_s` always reduces to `K * (1 +
+/// crit)` -- weapon speed cancels out entirely, so rage-per-second from
+/// auto-attacking is actually weapon-speed-invariant under this
+/// normalization, which is presumably the point of the rework.
+fn rage_regen_per_second(weapon_speed_ms: u32, is_two_handed: bool, crit_chance: f64) -> f64 {
+    if weapon_speed_ms == 0 {
+        return 0.0;
+    }
+    let k = if is_two_handed { RAGE_PER_SPEED_SECOND_TWO_HANDED } else { RAGE_PER_SPEED_SECOND_ONE_HANDED };
+    k * (1.0 + crit_chance)
+}
+
+/// Attempts one Heroic Strike -- Warrior's "replace the next swing, costs
+/// rage, never uses the GCD" ability. Called *after* the GCD-gated
+/// rotation has already had first claim on the shared rage pool for this
+/// pass (see `build_schedule`'s call sites) -- an earlier version checked
+/// this first, every single pass, which let it greedily win rage over
+/// Bloodthirst/Whirlwind/Rend every time since it's cheap and frequent;
+/// found via real testing that this starved the rest of the kit out
+/// entirely. Reordered so cooldown abilities get priority and Heroic
+/// Strike only spends whatever rage is left over -- a real resource-
+/// priority principle (hold rage for the bigger ability), not an attempt
+/// at a full APL. Rate-limited to roughly swing frequency
+/// (`weapon_speed_ms`), quantized to this loop's own step size
+/// (`GCD_MS`) since that's the only clock tick available while nothing
+/// else is happening -- a further, documented simplification; this does
+/// NOT literally tie it to one specific future swing the way the real
+/// ability does (which also means that swing then earns no rage).
+fn try_fire_heroic_strike(
+    data: &DataPack,
+    build: &BuildConfig,
+    time: u32,
+    rage: &mut f64,
+    last_heroic_strike_ms: &mut Option<u32>,
+    events: &mut Vec<DamageEvent>,
+) {
+    let Some(hs_id) = &build.heroic_strike_spell_id else { return };
+    let hs = data
+        .spell(hs_id)
+        .unwrap_or_else(|| panic!("heroic_strike_spell_id references unknown spell id `{hs_id}`"));
+    let swing_ready = last_heroic_strike_ms.map(|t| time >= t + build.weapon_speed_ms).unwrap_or(true);
+    let affordable = !build.rage_enabled || *rage >= hs.resource_cost;
+    if !swing_ready || !affordable {
+        return;
+    }
+    if build.rage_enabled {
+        *rage -= hs.resource_cost;
+    }
+    let (base_min, base_max) = weapon_augmented_base(hs.base_min, hs.base_max, build);
+    events.push(DamageEvent {
+        time_ms: time,
+        school: hs.school,
+        base_min,
+        base_max,
+        coefficient: hs.coefficient,
+        ap_coefficient: hs.ap_coefficient,
+        mana_coefficient: hs.mana_coefficient,
+        pct_multiplier: 1.0,
+        can_crit: true,
+        source_id: hs.id.clone(),
+        kind: EventKind::Direct,
+    });
+    *last_heroic_strike_ms = Some(time);
+}
+
+/// `uses_weapon_damage` substitution (see `SpellDef::uses_weapon_damage`'s
+/// doc comment): the roll range becomes the equipped weapon's damage
+/// range plus the spell's own `base_min/base_max` as a flat bonus layered
+/// on top, rather than `base_min/base_max` being the roll range directly.
+fn weapon_augmented_base(spell_base_min: f64, spell_base_max: f64, build: &BuildConfig) -> (f64, f64) {
+    (build.weapon_min + spell_base_min, build.weapon_max + spell_base_max)
+}
+
+/// A spell's real, effective resource cost at this moment: its own
+/// per-stack cost scaling if it's itself a stacking-buff spell (Arcane
+/// Blast's own mana cost rising per stack already held), times any
+/// active timed buff's `cost_pct` (Arcane Power making *everything*
+/// pricier while active, including the stacking spell's own cast). The
+/// per-stack scaling is additive (`base * (1 + (multiplier - 1) *
+/// stacks)`), matching real Blizzard-shipped stacking-cost abilities
+/// (cross-checked against `wowsims/tbc`'s Arcane Blast) -- see
+/// `StackingBuffDef::own_cost_multiplier_per_stack`'s doc comment for
+/// why this is not `.powi(stacks)`.
+fn effective_resource_cost(
+    spell: &wowforever_data::SpellDef,
+    stacking_count: u32,
+    timed_buff_def: &Option<TimedDamageBuffDef>,
+) -> f64 {
+    let mut cost = spell.resource_cost;
+    if let Some(sb) = &spell.stacking_buff {
+        cost *= 1.0 + (sb.own_cost_multiplier_per_stack - 1.0) * stacking_count as f64;
+    }
+    if let Some(tb) = timed_buff_def {
+        cost *= 1.0 + tb.cost_pct;
+    }
+    cost
+}
+
+/// The flat multiplier a spell's damage (direct hit and/or DoT ticks)
+/// gets from currently-active buffs, baked in once at schedule-build
+/// time. A spell that *is* the active stacking buff's own source does
+/// not benefit from its own stacks (the sourced Arcane Blast rule is
+/// explicit: stacks boost *other* spells, not itself) but still
+/// benefits from an active timed buff (Arcane Power boosts "your
+/// spells" generically).
+fn current_pct_multiplier(
+    spell: &wowforever_data::SpellDef,
+    stacking_def: &Option<StackingBuffDef>,
+    stacking_count: u32,
+    timed_buff_def: &Option<TimedDamageBuffDef>,
+) -> f64 {
+    let stack_mult = if spell.stacking_buff.is_none() {
+        match stacking_def {
+            Some(sb) => 1.0 + stacking_count as f64 * sb.other_damage_pct_per_stack,
+            None => 1.0,
+        }
+    } else {
+        1.0
+    };
+    let timed_mult = timed_buff_def.as_ref().map(|tb| 1.0 + tb.damage_pct).unwrap_or(1.0);
+    stack_mult * timed_mult
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildConfig {
@@ -115,6 +268,38 @@ pub struct BuildConfig {
     pub weapon_max: f64,
     #[serde(default)]
     pub weapon_speed_ms: u32,
+    /// Opts a build into rage tracking/enforcement (Warrior extension,
+    /// Plan Section 7). `false` (every pre-existing build's default)
+    /// means a `Rage`-typed spell in the rotation is never gated at all
+    /// -- same "unconstrained unless opted in" semantics `starting_mana:
+    /// None` already has for mana, so this field's addition cannot
+    /// change any existing build's behavior.
+    #[serde(default)]
+    pub rage_enabled: bool,
+    /// Whether the equipped weapon is two-handed -- feeds
+    /// `rage_regen_per_second`'s weapon-speed-based formula (WoW
+    /// Forever reworked rage generation to depend on weapon speed and
+    /// type only, not damage dealt; see that function's doc comment for
+    /// sourcing). Meaningless when `rage_enabled` is `false`.
+    #[serde(default)]
+    pub is_two_handed: bool,
+    /// Heroic Strike (or an equivalent "replace the next swing, costs
+    /// rage, doesn't use the GCD" ability) is deliberately not a member
+    /// of `rotation` -- see `build_schedule`'s doc comment for why it
+    /// needs separate handling. `None` means this build has no such
+    /// ability, which is every pre-existing build.
+    #[serde(default)]
+    pub heroic_strike_spell_id: Option<String>,
+    /// The caster's real mana-pool stat (Mage extension, Plan Section 7)
+    /// -- deliberately separate from `starting_mana`'s resource-
+    /// *enforcement* toggle (`None` there still means unconstrained
+    /// casting), since a stat a damage formula reads from shouldn't be
+    /// conflated with whether that resource is actually being gated.
+    /// Used only by `SpellDef::mana_coefficient` (e.g. Arcane Wrath's
+    /// "5% of maximum Mana" bonus damage). `0.0` is inert for every
+    /// build that doesn't reference it.
+    #[serde(default)]
+    pub max_mana: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -132,6 +317,22 @@ struct DamageEvent {
     /// formula covers both scaling kinds uniformly. Always 0.0 for every
     /// spell-power-scaling event.
     ap_coefficient: f64,
+    /// Mana-pool scaling coefficient (parallel to `ap_coefficient`'s
+    /// attack-power scaling) -- see `wowforever_data::SpellDef::
+    /// mana_coefficient`'s doc comment. Always 0.0 except for spells
+    /// that scale with the caster's mana pool directly (e.g. Arcane
+    /// Wrath).
+    mana_coefficient: f64,
+    /// A flat multiplier baked in at schedule-build time from any
+    /// active stacking/timed buff at the moment this event was
+    /// scheduled (see `build_schedule`'s stacking-buff/timed-buff
+    /// tracking) -- `1.0` (inert) for every event unaffected by either.
+    /// Computed once here, deterministically, rather than threaded
+    /// through the RNG-dependent damage-rolling step, keeping
+    /// `run_schedule`/`simulate_detail` almost unchanged (one more
+    /// multiplicative factor, same pattern as the existing Demonic-
+    /// Sacrifice school boost and crit multiplier).
+    pct_multiplier: f64,
     can_crit: bool,
     /// Which spell this event came from (`"auto_attack"` for melee
     /// swings, which have no `SpellDef`) -- carried through so a detailed
@@ -167,13 +368,62 @@ fn build_schedule(data: &DataPack, build: &BuildConfig) -> Vec<DamageEvent> {
     let mut events = Vec::new();
     let mana_capacity = build.starting_mana.unwrap_or(f64::INFINITY);
     let mut mana = mana_capacity;
+    // Rage starts at 0 (real Warriors enter a fight with no rage, unlike
+    // mana's "start = capacity" semantics) and is never gated unless
+    // `rage_enabled` opts in -- same "unconstrained by default" pattern
+    // `starting_mana: None` already gives mana, so this field's addition
+    // cannot change any existing (non-Warrior) build's behavior.
+    let rage_regen = if build.rage_enabled {
+        rage_regen_per_second(build.weapon_speed_ms, build.is_two_handed, build.crit_chance)
+    } else {
+        0.0
+    };
+    let mut rage: f64 = 0.0;
+    let mut last_heroic_strike_ms: Option<u32> = None;
+    // Arcane Blast-style stacking buff (Mage extension, Plan Section 7):
+    // `stacking_def` tracks which spell's buff is currently active (its
+    // `other_damage_pct_per_stack`/`own_cost_multiplier_per_stack`),
+    // `stacking_count` how many stacks are held, `stacking_expires_ms`
+    // when the whole window ends. Per the sourced post-October-15
+    // WoW Forever behavior, the window is a flat duration from the
+    // *first* stack -- NOT refreshed by later stacks and NOT reset by
+    // casting a different spell (see `wowforever_data::StackingBuffDef`'s
+    // doc comment for the full sourcing history).
+    let mut stacking_def: Option<StackingBuffDef> = None;
+    let mut stacking_count: u32 = 0;
+    let mut stacking_expires_ms: u32 = 0;
+    // Arcane Power-style flat timed buff: simpler, no stacks, just an
+    // active/inactive window.
+    let mut timed_buff_def: Option<TimedDamageBuffDef> = None;
+    let mut timed_buff_until_ms: u32 = 0;
 
     // An empty rotation is legitimate for a pure-auto-attack build (no
-    // sourced special abilities yet, e.g. Hunter/Rogue/Warrior's current
-    // scope) -- skip the GCD-gated loop entirely rather than looping
-    // forever at time=0 or panicking; the auto-attack timeline below is
-    // independent of this loop and still runs regardless.
-    while !build.rotation.is_empty() && time < build.fight_duration_ms {
+    // sourced special abilities yet, e.g. Hunter/Rogue's current scope)
+    // -- skip the GCD-gated loop entirely rather than looping forever at
+    // time=0 or panicking; the auto-attack timeline below is independent
+    // of this loop and still runs regardless. `heroic_strike_spell_id`
+    // alone (no GCD rotation at all) also needs the loop to run, since
+    // it's handled inside this loop too (see below).
+    while (!build.rotation.is_empty() || build.heroic_strike_spell_id.is_some())
+        && time < build.fight_duration_ms
+    {
+        if time >= stacking_expires_ms {
+            stacking_def = None;
+            stacking_count = 0;
+        }
+        if time >= timed_buff_until_ms {
+            timed_buff_def = None;
+        }
+        if build.rotation.is_empty() {
+            // Nothing GCD-gated to select -- try Heroic Strike (if any)
+            // with whatever rage is available, then wait one GCD and let
+            // rage regen before trying again.
+            try_fire_heroic_strike(data, build, time, &mut rage, &mut last_heroic_strike_ms, &mut events);
+            time += GCD_MS;
+            rage = (rage + rage_regen * (GCD_MS as f64 / 1000.0)).min(RAGE_CAP);
+            continue;
+        }
+
         let mut chosen = None;
         for id in &build.rotation {
             let spell = data
@@ -184,13 +434,33 @@ fn build_schedule(data: &DataPack, build: &BuildConfig) -> Vec<DamageEvent> {
             // have elapsed -- a prior version of this check ignored
             // `cooldown_ms` for any spell without a DoT, which silently
             // ignored cooldowns on spells like Shadowburn. Also only
-            // eligible if affordable -- with `starting_mana: None` this is
-            // always true (mana is infinite), preserving every pre-mana-
-            // modeling build's exact behavior.
+            // eligible if affordable in its own resource pool -- with
+            // `starting_mana: None`/`rage_enabled: false` this is always
+            // true, preserving every pre-resource-modeling build's exact
+            // behavior.
             let dot_ready = time >= *dot_active_until.get(id).unwrap_or(&0);
             let cd_ready = time >= *cooldown_until.get(id).unwrap_or(&0);
-            let affordable = mana >= spell.resource_cost;
-            if dot_ready && cd_ready && affordable {
+            // A self-stacking buff spell (Arcane Blast) stops being a
+            // sensible priority pick once it's already at its own
+            // `max_stacks` -- a real player (and every real APL, e.g.
+            // SimC/wowsims' `buff.arcane_blast.stack<4` condition) stops
+            // rebuilding a fully-stacked buff and moves to the next
+            // priority entry (the empowered spender) instead. Without
+            // this, the simplified priority-list model (see module docs
+            // on why a full APL condition grammar isn't implemented) has
+            // no way to express "don't recast this once it's maxed," so
+            // an always-affordable, no-cooldown stacking spell would
+            // monopolize every GCD for the whole fight and the spells it
+            // exists to empower would never be cast at all -- this is a
+            // generic function of the spell's own `max_stacks` field, not
+            // a per-spell special case.
+            let stack_ready = spell.stacking_buff.as_ref().map(|sb| stacking_count < sb.max_stacks).unwrap_or(true);
+            let cost = effective_resource_cost(spell, stacking_count, &timed_buff_def);
+            let affordable = match spell.resource_type {
+                ResourceType::Mana => mana >= cost,
+                ResourceType::Rage => !build.rage_enabled || rage >= cost,
+            };
+            if dot_ready && cd_ready && stack_ready && affordable {
                 chosen = Some(spell);
                 break;
             }
@@ -210,28 +480,62 @@ fn build_schedule(data: &DataPack, build: &BuildConfig) -> Vec<DamageEvent> {
             // rather than this being a rotation-design bug. Bounded by the
             // outer `while time < fight_duration_ms` -- time strictly
             // advances every iteration, so this cannot loop forever even
-            // if nothing ever becomes eligible again.
+            // if nothing ever becomes eligible again. Heroic Strike (if
+            // any) gets a try here too, with whatever rage is on hand --
+            // it never claims rage ahead of a GCD-gated cast, only after
+            // one failed to be eligible this pass.
+            try_fire_heroic_strike(data, build, time, &mut rage, &mut last_heroic_strike_ms, &mut events);
             time += GCD_MS;
             mana = (mana + build.mana_regen_per_second * (GCD_MS as f64 / 1000.0)).min(mana_capacity);
+            rage = (rage + rage_regen * (GCD_MS as f64 / 1000.0)).min(RAGE_CAP);
             continue;
         };
-        mana -= spell.resource_cost;
+        let cost = effective_resource_cost(spell, stacking_count, &timed_buff_def);
+        match spell.resource_type {
+            ResourceType::Mana => mana -= cost,
+            ResourceType::Rage => {
+                if build.rage_enabled {
+                    rage -= cost;
+                }
+            }
+        }
+        // Heroic Strike gets whatever rage is left over after the
+        // GCD-gated cast above already claimed its share -- see
+        // `try_fire_heroic_strike`'s doc comment for why this ordering
+        // (cooldowns first, rage-dump second) matters.
+        try_fire_heroic_strike(data, build, time, &mut rage, &mut last_heroic_strike_ms, &mut events);
         if spell.cooldown_ms > 0 {
             cooldown_until.insert(spell.id.clone(), time + spell.cooldown_ms);
         }
 
-        let has_direct_component = !(spell.base_min == 0.0
-            && spell.base_max == 0.0
-            && spell.coefficient == 0.0
-            && spell.ap_coefficient == 0.0);
+        // Compute this cast's damage multiplier *before* applying its
+        // own stacking-buff effect below (a spell that itself grants
+        // stacks must use the *pre*-cast stack count to decide its own
+        // multiplier -- it doesn't benefit from the stack it's about to
+        // add, per the sourced rule).
+        let pct_multiplier = current_pct_multiplier(spell, &stacking_def, stacking_count, &timed_buff_def);
+
+        let has_direct_component = spell.uses_weapon_damage
+            || !(spell.base_min == 0.0
+                && spell.base_max == 0.0
+                && spell.coefficient == 0.0
+                && spell.ap_coefficient == 0.0
+                && spell.mana_coefficient == 0.0);
         if has_direct_component {
+            let (base_min, base_max) = if spell.uses_weapon_damage {
+                weapon_augmented_base(spell.base_min, spell.base_max, build)
+            } else {
+                (spell.base_min, spell.base_max)
+            };
             events.push(DamageEvent {
                 time_ms: time,
                 school: spell.school,
-                base_min: spell.base_min,
-                base_max: spell.base_max,
+                base_min,
+                base_max,
                 coefficient: spell.coefficient,
                 ap_coefficient: spell.ap_coefficient,
+                mana_coefficient: spell.mana_coefficient,
+                pct_multiplier,
                 can_crit: true,
                 source_id: spell.id.clone(),
                 kind: EventKind::Direct,
@@ -247,12 +551,31 @@ fn build_schedule(data: &DataPack, build: &BuildConfig) -> Vec<DamageEvent> {
                     base_max: dot.tick_base,
                     coefficient: dot.tick_coefficient,
                     ap_coefficient: 0.0,
+                    mana_coefficient: 0.0,
+                    pct_multiplier,
                     can_crit: dot.can_crit,
                     source_id: spell.id.clone(),
                     kind: EventKind::Tick,
                 });
             }
             dot_active_until.insert(spell.id.clone(), time + dot.num_ticks * dot.tick_interval_ms);
+        }
+
+        // Activate this cast's own buff effects *after* computing
+        // `pct_multiplier` above, so this event used the pre-cast state.
+        if let Some(sb) = &spell.stacking_buff {
+            if stacking_count == 0 {
+                // First stack of a fresh window -- the window's expiry
+                // is fixed from here and not extended by later stacks
+                // (the sourced post-October-15 WoW Forever behavior).
+                stacking_expires_ms = time + sb.duration_ms;
+            }
+            stacking_count = (stacking_count + 1).min(sb.max_stacks);
+            stacking_def = Some(sb.clone());
+        }
+        if let Some(tb) = &spell.timed_buff {
+            timed_buff_until_ms = time + tb.duration_ms;
+            timed_buff_def = Some(tb.clone());
         }
 
         time += spell.cast_time_ms.max(GCD_MS);
@@ -275,6 +598,8 @@ fn build_schedule(data: &DataPack, build: &BuildConfig) -> Vec<DamageEvent> {
                 base_max: build.weapon_max,
                 coefficient: 0.0,
                 ap_coefficient,
+                mana_coefficient: 0.0,
+                pct_multiplier: 1.0,
                 can_crit: true,
                 source_id: "auto_attack".to_string(),
                 kind: EventKind::AutoAttack,
@@ -365,7 +690,9 @@ fn run_schedule(
             continue;
         }
         let base = roll_base(rng, ev.base_min, ev.base_max);
-        let mut dmg = base + ev.coefficient * build.spell_power + ev.ap_coefficient * build.attack_power;
+        let mut dmg = base + ev.coefficient * build.spell_power + ev.ap_coefficient * build.attack_power
+            + ev.mana_coefficient * build.max_mana;
+        dmg *= ev.pct_multiplier;
 
         if buff_active_at(ev.time_ms, build.demonic_sacrifice_active, build.resummon_event_ms, persists) {
             dmg *= 1.0 + boost_pct_for(data, build.pet_type, ev.school);
@@ -559,7 +886,9 @@ pub fn simulate_detail(data: &DataPack, build: &BuildConfig, seed: u64) -> SimDe
             continue;
         }
         let base = roll_base(&mut rng, ev.base_min, ev.base_max);
-        let mut dmg = base + ev.coefficient * build.spell_power + ev.ap_coefficient * build.attack_power;
+        let mut dmg = base + ev.coefficient * build.spell_power + ev.ap_coefficient * build.attack_power
+            + ev.mana_coefficient * build.max_mana;
+        dmg *= ev.pct_multiplier;
 
         if buff_active_at(ev.time_ms, build.demonic_sacrifice_active, build.resummon_event_ms, persists) {
             dmg *= 1.0 + boost_pct_for(data, build.pet_type, ev.school);
@@ -719,6 +1048,11 @@ mod tests {
                     base_max: 100.0, // fixed for a hand-computable unit test
                     coefficient: 0.5,
                     ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Mana,
+                    uses_weapon_damage: false,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
                     dot: None,
                     confidence: Confidence::CommunityReported,
                     source: Source { name: "test".into(), url: None },
@@ -734,6 +1068,11 @@ mod tests {
                     base_max: 0.0,
                     coefficient: 0.0,
                     ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Mana,
+                    uses_weapon_damage: false,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
                     dot: Some(DotDef {
                         tick_interval_ms: 3000,
                         num_ticks: 6,
@@ -799,6 +1138,10 @@ mod tests {
             weapon_min: 0.0,
             weapon_max: 0.0,
             weapon_speed_ms: 0,
+            rage_enabled: false,
+            is_two_handed: false,
+            heroic_strike_spell_id: None,
+            max_mana: 0.0,
         }
     }
 
@@ -955,6 +1298,11 @@ mod tests {
                 base_max: 50.0,
                 coefficient: 0.0,
                 ap_coefficient: 0.0,
+                resource_type: wowforever_data::ResourceType::Mana,
+                uses_weapon_damage: false,
+                mana_coefficient: 0.0,
+                stacking_buff: None,
+                timed_buff: None,
                 dot: None,
                 confidence: Confidence::CommunityReported,
                 source: Source { name: "test".into(), url: None },
@@ -984,6 +1332,10 @@ mod tests {
             weapon_min: 0.0,
             weapon_max: 0.0,
             weapon_speed_ms: 0,
+            rage_enabled: false,
+            is_two_handed: false,
+            heroic_strike_spell_id: None,
+            max_mana: 0.0,
         }
     }
 
@@ -1092,6 +1444,10 @@ mod tests {
             weapon_min,
             weapon_max,
             weapon_speed_ms,
+            rage_enabled: false,
+            is_two_handed: false,
+            heroic_strike_spell_id: None,
+            max_mana: 0.0,
         }
     }
 
@@ -1291,6 +1647,11 @@ mod tests {
                 base_max: 48.0,
                 coefficient: 0.0,
                 ap_coefficient: 0.45,
+                resource_type: wowforever_data::ResourceType::Mana,
+                uses_weapon_damage: false,
+                mana_coefficient: 0.0,
+                stacking_buff: None,
+                timed_buff: None,
                 dot: None,
                 confidence: Confidence::CommunityReported,
                 source: Source { name: "test".into(), url: None },
@@ -1336,4 +1697,477 @@ mod tests {
         let expected_dps = (3.0 * 498.0) / 18.0;
         assert!((result.dps.mean - expected_dps).abs() < 1e-6, "expected {expected_dps}, got {}", result.dps.mean);
     }
+
+    // --- Rage system (Warrior extension) -----------------------------
+
+    /// Hand-traced against the sourced formula: `K * (1 + crit_chance)`,
+    /// with weapon speed canceling out entirely (see
+    /// `rage_regen_per_second`'s doc comment for the algebra).
+    #[test]
+    fn rage_regen_per_second_matches_the_sourced_formula() {
+        assert!((rage_regen_per_second(2000, false, 0.0) - 3.46).abs() < 1e-9);
+        assert!((rage_regen_per_second(2000, false, 0.5) - 3.46 * 1.5).abs() < 1e-9);
+        assert!((rage_regen_per_second(3300, true, 0.0) - 4.50).abs() < 1e-9);
+        assert!((rage_regen_per_second(3300, true, 0.25) - 4.50 * 1.25).abs() < 1e-9);
+        // Different weapon speeds at the same handedness/crit must give
+        // the *same* per-second rate -- the speed-cancels-out finding.
+        assert_eq!(rage_regen_per_second(1500, false, 0.2), rage_regen_per_second(4000, false, 0.2));
+        // No weapon equipped -> no rage generation at all.
+        assert_eq!(rage_regen_per_second(0, true, 0.5), 0.0);
+    }
+
+    /// A data pack with one rage-costing direct-hit spell (no coefficient,
+    /// no cooldown, no dot) -- isolates rage-gating from everything else.
+    fn rage_data_pack() -> DataPack {
+        DataPack {
+            version: "test-fixture".into(),
+            game_build_reference: "test".into(),
+            spells: vec![
+                SpellDef {
+                    id: "rage_spell".into(),
+                    name: "Rage Spell".into(),
+                    school: School::Physical,
+                    cast_time_ms: 0,
+                    cooldown_ms: 0,
+                    resource_cost: 30.0,
+                    base_min: 100.0,
+                    base_max: 100.0,
+                    coefficient: 0.0,
+                    ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Rage,
+                    uses_weapon_damage: false,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
+                    dot: None,
+                    confidence: Confidence::CommunityReported,
+                    source: Source { name: "test".into(), url: None },
+                },
+                SpellDef {
+                    id: "hs_like".into(),
+                    name: "Heroic-Strike-like".into(),
+                    school: School::Physical,
+                    cast_time_ms: 0,
+                    cooldown_ms: 0,
+                    resource_cost: 157.0,
+                    base_min: 157.0,
+                    base_max: 157.0,
+                    coefficient: 0.0,
+                    ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Rage,
+                    uses_weapon_damage: true,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
+                    dot: None,
+                    confidence: Confidence::CommunityReported,
+                    source: Source { name: "test".into(), url: None },
+                },
+                SpellDef {
+                    id: "rend_like".into(),
+                    name: "Rend-like".into(),
+                    school: School::Physical,
+                    cast_time_ms: 0,
+                    cooldown_ms: 0,
+                    resource_cost: 0.0,
+                    base_min: 0.0,
+                    base_max: 0.0,
+                    coefficient: 0.0,
+                    ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Rage,
+                    uses_weapon_damage: false,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
+                    dot: Some(DotDef { tick_interval_ms: 3000, num_ticks: 7, tick_base: 14.0, tick_coefficient: 0.0, can_crit: false }),
+                    confidence: Confidence::CommunityReported,
+                    source: Source { name: "test".into(), url: None },
+                },
+            ],
+            disputed_mechanics: vec![],
+            dispute_ledger: vec![],
+            demonic_sacrifice_effects: vec![],
+            raid_debuffs: vec![],
+        }
+    }
+
+    /// Hand trace (rage starts at 0, regen = 4.50/s for a 2000ms 2H
+    /// weapon at 0% crit, cost 30): wait at t=1500 (rage 6.75), t=3000
+    /// (13.5), t=4500 (20.25), t=6000 (27.0), t=7500 (33.75) -- now
+    /// affordable, cast fires AT t=7500, not any sooner. One cast's worth
+    /// of damage (100) over an 8000ms fight = 12.5 DPS. Weapon
+    /// min/max are 0 so independent auto-attack swings (also scheduled,
+    /// since weapon_speed_ms > 0) contribute nothing, isolating this
+    /// assertion to the rage-gated cast alone.
+    #[test]
+    fn rage_gated_spell_is_blocked_until_enough_rage_accrues_then_fires() {
+        let data = rage_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 2000, 8000);
+        build.rotation = vec!["rage_spell".into()];
+        build.rage_enabled = true;
+        build.is_two_handed = true;
+
+        let result = simulate(&data, &build, 10, 1);
+        let expected_dps = 100.0 / 8.0;
+        assert!((result.dps.mean - expected_dps).abs() < 1e-6, "expected {expected_dps}, got {}", result.dps.mean);
+    }
+
+    /// Regression guard for the schema addition: `rage_enabled: false`
+    /// must leave a `Rage`-typed spell completely unconstrained, exactly
+    /// like every build before this field existed. Hand trace: with no
+    /// cooldown/dot gating it either, `rage_spell` fires every GCD --
+    /// casts at 0, 1500, 3000 (3 casts, fight ends at 4500) = 300 damage
+    /// over 4.5s.
+    #[test]
+    fn rage_enabled_false_leaves_a_rage_type_spell_completely_unconstrained() {
+        let data = rage_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 0, 4500);
+        build.rotation = vec!["rage_spell".into()];
+        assert!(!build.rage_enabled, "rage_enabled must default to false");
+
+        let result = simulate(&data, &build, 10, 1);
+        let expected_dps = (3.0 * 100.0) / 4.5;
+        assert!((result.dps.mean - expected_dps).abs() < 1e-6, "expected {expected_dps}, got {}", result.dps.mean);
+    }
+
+    /// `uses_weapon_damage` must roll against the equipped weapon's
+    /// range plus the spell's own `base_min/base_max` as a flat bonus,
+    /// not use `base_min/base_max` as the roll range directly. Weapon
+    /// fixed at 50 (no variance), `hs_like`'s flat bonus is 157 (its real
+    /// sourced max-rank value) -- every cast must deal exactly 207.
+    /// `weapon_speed_ms: 0` keeps auto-attack out of this, isolating the
+    /// assertion to the ability's own roll. Unconstrained resource (no
+    /// cooldown either) so it fires every GCD: casts at 0, 1500, 3000 (3
+    /// casts, fight ends at 4500) = 621 over 4.5s.
+    #[test]
+    fn uses_weapon_damage_rolls_against_the_weapon_range_plus_the_spells_flat_bonus() {
+        let data = rage_data_pack();
+        let mut build = melee_build(0.0, 50.0, 50.0, 0, 4500);
+        build.rotation = vec!["hs_like".into()];
+
+        let result = simulate(&data, &build, 10, 1);
+        let expected_dps = (3.0 * (50.0 + 157.0)) / 4.5;
+        assert!((result.dps.mean - expected_dps).abs() < 1e-6, "expected {expected_dps}, got {}", result.dps.mean);
+    }
+
+    /// Regression test for a real bug found via actual browser testing,
+    /// not assumed: an earlier version let Heroic Strike fire as many
+    /// times as currently affordable on *every* loop pass, with no rate
+    /// limit beyond rage -- since it's cheap, it won rage over
+    /// Bloodthirst/Whirlwind/Rend every single time, so a real Warrior
+    /// build's Abilities tab showed Auto Attack + Heroic Strike *only*,
+    /// nothing else ever firing. Fixed by gating it on a swing-interval
+    /// cooldown (`weapon_speed_ms`) in addition to rage (see
+    /// `build_schedule`'s doc comment). Hand trace (2000ms-speed 2H
+    /// weapon -> regen 4.50/s, cost 1.0, empty GCD rotation so the only
+    /// clock tick is the 1500ms wait step): rage reaches 6.75 at t=1500
+    /// (first fire, since `last_heroic_strike_ms` starts `None` ->
+    /// always ready); the *next* fire needs `time >= 1500 + 2000 =
+    /// 3500`, which isn't reached until the wait step lands on t=4500
+    /// (3000 >= 3500 is false, 4500 >= 3500 is true) -- so fires land at
+    /// 1500, 4500, 7500: a real ~3000ms cadence, not every 1500ms GCD
+    /// tick and not the same instant twice. Inspects `build_schedule`
+    /// directly (private, but visible to this module's own tests) since
+    /// this is about the *schedule's* shape, not a damage total.
+    #[test]
+    fn heroic_strike_style_ability_is_rate_limited_by_swing_interval_not_just_rage() {
+        let data = rage_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 2000, 10_000);
+        build.rotation = vec![]; // isolate: no GCD-gated rotation at all
+        build.rage_enabled = true;
+        build.is_two_handed = true;
+        build.heroic_strike_spell_id = Some("rage_spell".into());
+        // Override the shared fixture's cost: cheap enough that rage is
+        // never the bottleneck, isolating the swing-interval gate.
+        let mut data = data;
+        data.spells.iter_mut().find(|s| s.id == "rage_spell").unwrap().resource_cost = 1.0;
+
+        let events = build_schedule(&data, &build);
+        let hs_events: Vec<&DamageEvent> = events.iter().filter(|e| e.source_id == "rage_spell" && e.kind == EventKind::Direct).collect();
+        let times: Vec<u32> = hs_events.iter().map(|e| e.time_ms).collect();
+        assert_eq!(times, vec![1500, 4500, 7500], "expected a ~3000ms cadence (swing-interval-gated), got {times:?}");
+    }
+
+    /// Rend-shaped DoT ticks for its hand-computed total (98 over 21s =
+    /// 14/tick x 7 ticks @ 3000ms) -- exercises zero new scheduling logic
+    /// (same `DotDef` mechanism Corruption already uses), just with
+    /// `resource_type: Rage`. `fight_duration_ms: 21001` (1ms past the
+    /// last tick) includes all 7 original ticks while the dot's own
+    /// reapplication-window check (`dot_ready` becomes true again at
+    /// exactly 21000) prevents the fight from ending in time for a
+    /// second application's ticks to count (they'd all land >= 21001,
+    /// contributing nothing even though a recast is technically
+    /// scheduled at 21000).
+    #[test]
+    fn rend_like_dot_ticks_match_the_hand_computed_total() {
+        let data = rage_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 0, 21_001);
+        build.rotation = vec!["rend_like".into()];
+
+        let result = simulate(&data, &build, 10, 1);
+        let expected_dps = (7.0 * 14.0) / (21_001.0 / 1000.0);
+        assert!((result.dps.mean - expected_dps).abs() < 1e-6, "expected {expected_dps}, got {}", result.dps.mean);
+    }
+
+    // --- Stacking / timed buffs and mana-pool scaling (Mage extension) ---
+
+    fn stacking_spell_def(id: &str, cooldown_ms: u32) -> SpellDef {
+        SpellDef {
+            id: id.into(),
+            name: id.into(),
+            school: School::Arcane,
+            cast_time_ms: 0,
+            cooldown_ms,
+            resource_cost: 0.0,
+            base_min: 10.0,
+            base_max: 10.0,
+            coefficient: 0.0,
+            ap_coefficient: 0.0,
+            resource_type: ResourceType::Mana,
+            uses_weapon_damage: false,
+            mana_coefficient: 0.0,
+            stacking_buff: Some(StackingBuffDef {
+                max_stacks: 4,
+                other_damage_pct_per_stack: 0.10,
+                own_cost_multiplier_per_stack: 1.0,
+                duration_ms: 8000,
+            }),
+            timed_buff: None,
+            dot: None,
+            confidence: Confidence::CommunityReported,
+            source: Source { name: "test".into(), url: None },
+        }
+    }
+
+    fn plain_spell_def(id: &str, cooldown_ms: u32, base: f64) -> SpellDef {
+        SpellDef {
+            id: id.into(),
+            name: id.into(),
+            school: School::Arcane,
+            cast_time_ms: 0,
+            cooldown_ms,
+            resource_cost: 0.0,
+            base_min: base,
+            base_max: base,
+            coefficient: 0.0,
+            ap_coefficient: 0.0,
+            resource_type: ResourceType::Mana,
+            uses_weapon_damage: false,
+            mana_coefficient: 0.0,
+            stacking_buff: None,
+            timed_buff: None,
+            dot: None,
+            confidence: Confidence::CommunityReported,
+            source: Source { name: "test".into(), url: None },
+        }
+    }
+
+    fn timed_buff_spell_def(id: &str, cooldown_ms: u32) -> SpellDef {
+        SpellDef {
+            id: id.into(),
+            name: id.into(),
+            school: School::Arcane,
+            cast_time_ms: 0,
+            cooldown_ms,
+            resource_cost: 0.0,
+            base_min: 0.0,
+            base_max: 0.0,
+            coefficient: 0.0,
+            ap_coefficient: 0.0,
+            resource_type: ResourceType::Mana,
+            uses_weapon_damage: false,
+            mana_coefficient: 0.0,
+            stacking_buff: None,
+            timed_buff: Some(TimedDamageBuffDef { duration_ms: 6000, damage_pct: 0.30, cost_pct: 0.50 }),
+            dot: None,
+            confidence: Confidence::CommunityReported,
+            source: Source { name: "test".into(), url: None },
+        }
+    }
+
+    fn buff_mechanics_data_pack() -> DataPack {
+        DataPack {
+            version: "test-fixture".into(),
+            game_build_reference: "test".into(),
+            spells: vec![
+                stacking_spell_def("stacker", 3000),
+                plain_spell_def("spender", 0, 100.0),
+                timed_buff_spell_def("buffer", 10_000),
+                plain_spell_def("spender2", 0, 100.0),
+                timed_buff_spell_def("buffer_slow", 100_000),
+                plain_spell_def("spender3", 0, 100.0),
+            ],
+            disputed_mechanics: vec![],
+            dispute_ledger: vec![],
+            demonic_sacrifice_effects: vec![],
+            raid_debuffs: vec![],
+        }
+    }
+
+    /// Pure-function tests of `current_pct_multiplier`: the stacking
+    /// spell itself never benefits from its own stacks (the sourced
+    /// Arcane Blast rule), a *different* spell gets `1 + stacks * pct`,
+    /// and an active timed buff composes *multiplicatively* with an
+    /// active stacking buff, not additively -- `(1.1)*(1.3) = 1.43`,
+    /// distinctly different from the naive-but-wrong `1 + 0.1 + 0.3 =
+    /// 1.4`, so this test would catch that exact regression class.
+    #[test]
+    fn current_pct_multiplier_matches_hand_computed_values() {
+        let data = buff_mechanics_data_pack();
+        let stacker = data.spell("stacker").unwrap();
+        let spender = data.spell("spender").unwrap();
+        let sb = stacker.stacking_buff.clone();
+        let tb = TimedDamageBuffDef { duration_ms: 6000, damage_pct: 0.30, cost_pct: 0.50 };
+
+        assert_eq!(current_pct_multiplier(stacker, &sb, 3, &None), 1.0, "the stacking spell must never boost its own damage");
+        assert!((current_pct_multiplier(spender, &sb, 3, &None) - 1.30).abs() < 1e-9);
+        // 3 stacks (1 + 3*0.10 = 1.30) times the timed buff (1 + 0.30 =
+        // 1.30) composes multiplicatively to 1.69, not the naive-additive
+        // (and wrong) 1 + 0.30 + 0.30 = 1.60.
+        assert!((current_pct_multiplier(spender, &sb, 3, &Some(tb)) - 1.69).abs() < 1e-9);
+        assert_eq!(current_pct_multiplier(spender, &None, 0, &None), 1.0);
+    }
+
+    /// Pure-function tests of `effective_resource_cost`: the stacking
+    /// spell's own cost compounds per stack already held
+    /// (`own_cost_multiplier_per_stack ^ stacking_count`), and an active
+    /// timed buff's `cost_pct` multiplies on top of that.
+    #[test]
+    fn effective_resource_cost_matches_hand_computed_values() {
+        let data = buff_mechanics_data_pack();
+        let mut stacker = data.spell("stacker").unwrap().clone();
+        stacker.resource_cost = 10.0;
+        stacker.stacking_buff.as_mut().unwrap().own_cost_multiplier_per_stack = 2.75;
+
+        assert!((effective_resource_cost(&stacker, 0, &None) - 10.0).abs() < 1e-9);
+        assert!((effective_resource_cost(&stacker, 1, &None) - 27.5).abs() < 1e-9);
+        assert!((effective_resource_cost(&stacker, 2, &None) - 45.0).abs() < 1e-9);
+
+        let tb = TimedDamageBuffDef { duration_ms: 6000, damage_pct: 0.30, cost_pct: 0.50 };
+        assert!((effective_resource_cost(&stacker, 0, &Some(tb)) - 15.0).abs() < 1e-9);
+    }
+
+    /// End-to-end hand trace through `build_schedule` of the real,
+    /// sourced post-October-15 WoW Forever behavior: stacks accumulate
+    /// across repeated casts (gated here by a 3s cooldown on the
+    /// stacking spell so a lower-priority `spender` gets scheduled
+    /// between them, revealing the current stack count via its
+    /// `pct_multiplier`), the window's expiry is fixed from the *first*
+    /// stack and is **not** extended by later stacks within it, and a
+    /// fresh window starts correctly after the old one decays. See
+    /// `stacking_spell_def`'s 8000ms duration.
+    ///
+    /// Trace (GCD_MS=1500, stacker cooldown 3000ms):
+    /// t=0 stacker (stack 0->1, expires=8000); t=1500 spender (mult
+    /// 1.10); t=3000 stacker (stack 1->2, expires unchanged=8000);
+    /// t=4500 spender (mult 1.20); t=6000 stacker (stack 2->3, expires
+    /// unchanged=8000); t=7500 spender (mult 1.30); t=9000: expiry
+    /// check fires first (9000>=8000) resetting to 0 stacks *before*
+    /// stacker is evaluated this same iteration, so this cast starts a
+    /// fresh window (stack 0->1, new expires=9000+8000=17000); t=10500
+    /// spender (mult back down to 1.10, proving the reset really
+    /// happened, not just a coincidentally-similar number).
+    #[test]
+    fn stacking_buff_accumulates_and_decays_exactly_as_sourced() {
+        let data = buff_mechanics_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 0, 12_000);
+        build.rotation = vec!["stacker".into(), "spender".into()];
+
+        let events = build_schedule(&data, &build);
+        let spender_mults: Vec<f64> =
+            events.iter().filter(|e| e.source_id == "spender").map(|e| e.pct_multiplier).collect();
+
+        let expected = vec![1.10, 1.20, 1.30, 1.10];
+        assert_eq!(spender_mults.len(), expected.len(), "expected {} spender casts, got {:?}", expected.len(), spender_mults);
+        for (got, want) in spender_mults.iter().zip(expected.iter()) {
+            assert!((got - want).abs() < 1e-9, "expected {want}, got {got} in sequence {spender_mults:?}");
+        }
+    }
+
+    /// End-to-end hand trace of a flat timed buff's activation and
+    /// expiry: `buffer` (cooldown far longer than this short test fight)
+    /// casts once, dealing no damage itself (its own fields are all
+    /// zero, so `has_direct_component` is false -- no event at all for
+    /// it, confirmed by only checking `spender2`'s events below), then
+    /// `spender2` gets the +30% multiplier for the buff's full 6000ms
+    /// window (casts at 1500/3000/4500) and loses it exactly once the
+    /// window expires (cast at 6000, multiplier back to 1.0).
+    #[test]
+    fn timed_buff_applies_for_its_duration_then_expires() {
+        let data = buff_mechanics_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 0, 7500);
+        build.rotation = vec!["buffer".into(), "spender2".into()];
+
+        let events = build_schedule(&data, &build);
+        assert!(events.iter().all(|e| e.source_id != "buffer"), "the buff-only spell must deal no damage itself");
+        let spender_mults: Vec<f64> =
+            events.iter().filter(|e| e.source_id == "spender2").map(|e| e.pct_multiplier).collect();
+        assert_eq!(spender_mults, vec![1.30, 1.30, 1.30, 1.0], "buff should hold for 3 casts then expire on the 4th");
+    }
+
+    /// Both buffs active at once compose multiplicatively, confirmed
+    /// end-to-end (not just via the pure-function test above): cast
+    /// `buffer_slow` once (its cooldown is far longer than this fight,
+    /// so it never recasts), then one `stacker` cast (1 stack), then
+    /// `spender3` gets `(1 + 1*0.10) * (1 + 0.30) = 1.43`.
+    #[test]
+    fn stacking_and_timed_buffs_compose_multiplicatively_end_to_end() {
+        let data = buff_mechanics_data_pack();
+        let mut build = melee_build(0.0, 0.0, 0.0, 0, 4500);
+        build.rotation = vec!["buffer_slow".into(), "stacker".into(), "spender3".into()];
+
+        let events = build_schedule(&data, &build);
+        let spender_mults: Vec<f64> =
+            events.iter().filter(|e| e.source_id == "spender3").map(|e| e.pct_multiplier).collect();
+        assert_eq!(spender_mults.len(), 1);
+        assert!((spender_mults[0] - 1.43).abs() < 1e-9, "expected 1.43, got {}", spender_mults[0]);
+    }
+
+    /// `mana_coefficient` scales a direct spell with `BuildConfig::
+    /// max_mana`, independent of `spell_power`/`attack_power` -- mirrors
+    /// `ap_coefficient_scales_a_direct_spell_with_attack_power`'s pattern
+    /// exactly, for the third (mana-pool) scaling kind (Arcane Wrath:
+    /// "5% of maximum Mana" as bonus damage).
+    #[test]
+    fn mana_coefficient_scales_a_direct_spell_with_max_mana() {
+        let data = DataPack {
+            version: "test-fixture".into(),
+            game_build_reference: "test".into(),
+            spells: vec![SpellDef {
+                id: "wrath_like".into(),
+                name: "Wrath-like".into(),
+                school: School::Arcane,
+                cast_time_ms: 0,
+                cooldown_ms: 0,
+                resource_cost: 0.0,
+                base_min: 100.0,
+                base_max: 100.0,
+                coefficient: 0.0,
+                ap_coefficient: 0.0,
+                resource_type: ResourceType::Mana,
+                uses_weapon_damage: false,
+                mana_coefficient: 0.05,
+                stacking_buff: None,
+                timed_buff: None,
+                dot: None,
+                confidence: Confidence::CommunityReported,
+                source: Source { name: "test".into(), url: None },
+            }],
+            disputed_mechanics: vec![],
+            dispute_ledger: vec![],
+            demonic_sacrifice_effects: vec![],
+            raid_debuffs: vec![],
+        };
+        let mut build = melee_build(0.0, 0.0, 0.0, 0, 3000);
+        build.rotation = vec!["wrath_like".into()];
+        build.max_mana = 1000.0;
+
+        let result = simulate(&data, &build, 10, 1);
+        // Hand trace: cast_time_ms=0 -> GCD-stepped casts at 0 and 1500;
+        // fight ends at 3000, so exactly 2 casts of 150 each = 300 total.
+        let expected_dps = (2.0 * (100.0 + 0.05 * 1000.0)) / 3.0;
+        assert!((result.dps.mean - expected_dps).abs() < 1e-6, "expected {expected_dps}, got {}", result.dps.mean);
+    }
 }
+
+

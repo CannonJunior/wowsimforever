@@ -71,6 +71,11 @@ fn classic_rank9_shadow_bolt() -> SpellDef {
         base_max: 507.0,
         coefficient: 0.857,
         ap_coefficient: 0.0,
+        resource_type: wowforever_data::ResourceType::Mana,
+        uses_weapon_damage: false,
+        mana_coefficient: 0.0,
+        stacking_buff: None,
+        timed_buff: None,
         dot: None,
         confidence: Confidence::CommunityReported, // read from a third-party (if MIT-licensed, public) source, not Blizzard
         source: Source {
@@ -110,6 +115,10 @@ fn no_buff_build(rotation: Vec<String>, fight_duration_ms: u32) -> BuildConfig {
         weapon_min: 0.0,
         weapon_max: 0.0,
         weapon_speed_ms: 0,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 0.0,
     }
 }
 

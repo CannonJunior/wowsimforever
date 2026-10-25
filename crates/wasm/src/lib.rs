@@ -123,7 +123,7 @@ pub fn simulate_dps_core(data_pack_json: &str, build_json: &str, iterations: u32
         Ok(b) => b,
         Err(e) => return serde_json::to_string(&WasmDpsResult::err(format!("invalid build JSON: {e}"))).unwrap(),
     };
-    if let Err(msg) = validate_spell_ids(&data, &build.rotation) {
+    if let Err(msg) = validate_spell_ids(&data, build.rotation.iter().chain(build.heroic_strike_spell_id.iter())) {
         return serde_json::to_string(&WasmDpsResult::err(msg)).unwrap();
     }
 
@@ -187,7 +187,7 @@ pub fn simulate_dps_detail_core(data_pack_json: &str, build_json: &str, seed: u6
         Ok(b) => b,
         Err(e) => return serde_json::to_string(&WasmDetailResult::err(format!("invalid build JSON: {e}"))).unwrap(),
     };
-    if let Err(msg) = validate_spell_ids(&data, &build.rotation) {
+    if let Err(msg) = validate_spell_ids(&data, build.rotation.iter().chain(build.heroic_strike_spell_id.iter())) {
         return serde_json::to_string(&WasmDetailResult::err(msg)).unwrap();
     }
 
@@ -492,6 +492,28 @@ mod tests {
             "dispute_rule_override": null
         }"#;
         let result_json = simulate_dps_core(DATA_PACK_JSON, build_with_unknown_spell, 100, 1);
+        let parsed: serde_json::Value = serde_json::from_str(&result_json).expect("must still be valid JSON, not a crashed process");
+        assert_eq!(parsed["ok"], false);
+        assert!(parsed["error"].as_str().unwrap().contains("this_spell_does_not_exist"));
+    }
+
+    /// Same failure mode as the rotation case above, but for
+    /// `heroic_strike_spell_id` (Warrior rage-system extension) -- it's
+    /// deliberately not a member of `rotation` (see
+    /// `wowforever_engine::build_schedule`'s doc comment), so it needs
+    /// its own `validate_spell_ids` coverage, not a free ride off the
+    /// rotation check.
+    #[test]
+    fn simulate_dps_core_reports_an_unknown_heroic_strike_spell_id_as_an_error_not_a_panic() {
+        let build_with_unknown_hs = r#"{
+            "spell_power": 350.0, "crit_chance": 0.2, "fight_duration_ms": 60000,
+            "rotation": [], "pet_type": "imp",
+            "demonic_sacrifice_active": false, "has_demonic_pact": false,
+            "resummon_event_ms": null, "resummon_is_same_pet": false,
+            "dispute_rule_override": null,
+            "rage_enabled": true, "heroic_strike_spell_id": "this_spell_does_not_exist"
+        }"#;
+        let result_json = simulate_dps_core(DATA_PACK_JSON, build_with_unknown_hs, 100, 1);
         let parsed: serde_json::Value = serde_json::from_str(&result_json).expect("must still be valid JSON, not a crashed process");
         assert_eq!(parsed["ok"], false);
         assert!(parsed["error"].as_str().unwrap().contains("this_spell_does_not_exist"));

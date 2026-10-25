@@ -1,0 +1,303 @@
+{
+  "schema_version": 1,
+  "pack_version": "warlock-gear-2026-10-23-rev1",
+  "client_build_reference": "1.60.1.70425 (via sage3648/mythicsim-forever-engine)",
+  "generated": "2026-10-23",
+  "provenance_note": "Mined from the same MIT-licensed sage3648/mythicsim-forever-engine repository as the spell data pack. Items/enchants: data/items.jsonl and data/enchants.jsonl (the real client item database - this engine's gems.jsonl is empty; Forever's own item.rs explicitly refuses an equipped gem since 'the database has none of' - gems are genuinely not modeled in the source engine itself, not a gap in this mining pass). Rating-to-percent conversions: src/prepare/character.rs's constants module (exact values, not estimated). Haste: src/mechanics/haste.rs's cast_speed formula. Race base stats and the Warlock Intellect-to-crit conversion: data/go-tables.json (itself mined from the Go reference engine's core.BaseStats and crit-per-int tables). known_conflicts and unimplemented_but_parsed below record what this pack carries but this engine does not yet apply.",
+  "known_conflicts": [],
+  "unimplemented_but_parsed": [
+    "ShadowDamage/FireDamage: real per-item school-specific spell power bonuses exist on some items (e.g. this pack's example build has +60 ShadowDamage split across three items) separate from the universal SpellDamage stat. This engine's CasterStats has a single flat spell_power applied to every school (see stats.rs's own doc comment, which is honest about this being a simplification), so gear.rs parses and stores these per-item but does not yet add them into the computed spell_power - a Destruction build's Fire damage and an Affliction build's Shadow damage are both very slightly undercounted by whatever ShadowDamage/FireDamage the equipped items carry.",
+    "Intellect-to-mana: a plausible classic-WoW-wide formula (bonus mana from Intellect above a class's base) was NOT found as an explicit registered constant anywhere in this engine's own source (the one `add_stat_dependency(Intellect, Mana, 15.0)` call found is a unit test's illustrative example for the dependency-manager API, not confirmed as Warlock's actual registered value) - gear.rs's computed max_mana is race base Mana plus items' own flat Mana stat contributions only, with no Intellect-derived bonus. Flagged rather than guessed."
+  ],
+  "rating_conversions": {
+    "spell_hit_rating_per_percent": 10.0,
+    "melee_hit_rating_per_percent": 10.0,
+    "spell_crit_rating_per_percent": 14.0,
+    "melee_crit_rating_per_percent": 14.0,
+    "spell_haste_rating_per_percent": 10.0,
+    "_source": "src/prepare/character.rs constants + src/mechanics/haste.rs (SPELL_HASTE_RATING_PER_PERCENT_TIMES_100=1000.0, i.e. 10 rating/1%, derived not copy-pasted).",
+    "_unify_gear_hit_and_crit": "Forever's own rule (forever_rules.go unifyGearHitAndCrit, read via src/prepare/items.rs): a gear set's melee and spell hit ratings are summed into one percent and reapplied to BOTH; same for crit. gear.rs implements this - a caster's gear-granted melee hit/crit (from an off-type item) genuinely does count as spell hit/crit here, it isn't a mining error."
+  },
+  "intellect_to_spell_crit_percent": 0.0165,
+  "race_base_stats": {
+    "RaceGnome": {
+      "Intellect": 113,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 115,
+      "Stamina": 64
+    },
+    "RaceHuman": {
+      "Intellect": 110,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 115,
+      "Stamina": 65
+    },
+    "RaceOrc": {
+      "Intellect": 107,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 118,
+      "Stamina": 67
+    },
+    "RaceTroll": {
+      "Intellect": 106,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 116,
+      "Stamina": 66
+    },
+    "RaceUndead": {
+      "Intellect": 108,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 120,
+      "Stamina": 66
+    }
+  },
+  "items": {
+    "22267": {
+      "name": "Spellweaver's Turban",
+      "slot": "head",
+      "stats": {
+        "Intellect": 9,
+        "SpellDamage": 36,
+        "SpellHitRating": 10
+      }
+    },
+    "22403": {
+      "name": "Nacreous Shell Necklace",
+      "slot": "neck",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 9,
+        "SpellHitRating": 10
+      }
+    },
+    "10038": {
+      "name": "Stormcloth Shoulders",
+      "slot": "shoulder",
+      "stats": {
+        "Stamina": 10,
+        "SpellDamage": 7
+      }
+    },
+    "18350": {
+      "name": "Amplifying Cloak",
+      "slot": "back",
+      "stats": {
+        "SpellDamage": 18
+      }
+    },
+    "14153": {
+      "name": "Robe of the Void",
+      "slot": "chest",
+      "stats": {
+        "Stamina": 10,
+        "Intellect": 9,
+        "SpellDamage": 46
+      }
+    },
+    "18497": {
+      "name": "Sublime Wristguards",
+      "slot": "wrist",
+      "stats": {
+        "Stamina": 6,
+        "Intellect": 10,
+        "SpellDamage": 12,
+        "Spirit": 6
+      }
+    },
+    "13253": {
+      "name": "Hands of Power",
+      "slot": "hands",
+      "stats": {
+        "Intellect": 6,
+        "SpellDamage": 26,
+        "Spirit": 6
+      }
+    },
+    "11662": {
+      "name": "Ban'thok Sash",
+      "slot": "waist",
+      "stats": {
+        "Stamina": 10,
+        "Intellect": 11,
+        "SpellDamage": 12,
+        "SpellHitRating": 10
+      }
+    },
+    "13170": {
+      "name": "Skyshroud Leggings",
+      "slot": "legs",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 34
+      }
+    },
+    "18735": {
+      "name": "Maleki's Footwraps",
+      "slot": "feet",
+      "stats": {
+        "Stamina": 9,
+        "Intellect": 9,
+        "ShadowDamage": 27
+      }
+    },
+    "22433": {
+      "name": "Don Mauricio's Band of Domination",
+      "slot": "finger1",
+      "stats": {
+        "Stamina": 5,
+        "SpellDamage": 11,
+        "SpellCritRating": 14
+      }
+    },
+    "17713": {
+      "name": "Blackstone Ring",
+      "slot": "finger2",
+      "stats": {
+        "Stamina": 6,
+        "MeleeHitRating": 10
+      }
+    },
+    "18372": {
+      "name": "Blade of the New Moon",
+      "slot": "main_hand",
+      "stats": {
+        "Stamina": 5,
+        "ShadowDamage": 19
+      }
+    },
+    "22329": {
+      "name": "Scepter of Interminable Focus",
+      "slot": "off_hand",
+      "stats": {
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "SpellCritRating": 14
+      }
+    },
+    "13396": {
+      "name": "Skul's Ghastly Touch",
+      "slot": "ranged",
+      "stats": {
+        "ShadowDamage": 14
+      }
+    }
+  },
+  "enchants": {
+    "1509": {
+      "name": "Lesser Arcanum of Voracity",
+      "stats": {
+        "Intellect": 8
+      }
+    },
+    "1891": {
+      "name": "Enchant Chest - Greater Stats",
+      "stats": {
+        "Stamina": 4,
+        "Intellect": 4,
+        "Spirit": 4
+      }
+    },
+    "1883": {
+      "name": "Enchant Bracer - Greater Intellect",
+      "stats": {
+        "Intellect": 7
+      }
+    },
+    "851": {
+      "name": "Enchant Bracer - Spirit",
+      "stats": {
+        "Spirit": 5
+      }
+    }
+  },
+  "example_builds": {
+    "destruction_reference": {
+      "_source": "validation/2026-10-06-warlock-multi-target-census/bases/2-targets/destruction-warlock.request.json's equipment list - a real fixture build, not hand-assembled.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 10038,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14153,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 13253,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 18735,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 17713,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 18372,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13396,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    }
+  }
+}

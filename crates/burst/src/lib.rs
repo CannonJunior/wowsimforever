@@ -442,6 +442,11 @@ mod tests {
                     base_max: 215.0, // a genuine range, per the user's correction
                     coefficient: 0.857,
                     ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Mana,
+                    uses_weapon_damage: false,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
                     dot: None,
                     confidence: Confidence::CommunityReported,
                     source: Source { name: "test".into(), url: None },
@@ -457,6 +462,11 @@ mod tests {
                     base_max: 84.0, // a genuine range
                     coefficient: 0.429,
                     ap_coefficient: 0.0,
+                    resource_type: wowforever_data::ResourceType::Mana,
+                    uses_weapon_damage: false,
+                    mana_coefficient: 0.0,
+                    stacking_buff: None,
+                    timed_buff: None,
                     dot: None,
                     confidence: Confidence::CommunityReported,
                     source: Source { name: "test".into(), url: None },

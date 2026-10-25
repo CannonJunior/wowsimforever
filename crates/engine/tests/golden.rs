@@ -40,6 +40,10 @@ fn golden_build() -> BuildConfig {
         weapon_min: 0.0,
         weapon_max: 0.0,
         weapon_speed_ms: 0,
+        rage_enabled: false,
+        is_two_handed: false,
+        heroic_strike_spell_id: None,
+        max_mana: 0.0,
     }
 }
 
