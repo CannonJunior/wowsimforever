@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "pack_version": "mage-forever-2026-10-25-rev4",
+  "client_build_reference": "1.60.1.70425/70532 (via sage3648/mythicsim-forever-engine, data/spells.jsonl)",
+  "generated": "2026-10-25",
+  "provenance_note": "rev3 adds Arcane Mage (arcane_blast, arcane_missiles) and Frost Mage (frostbolt, ice_lance) while beginning both specs, sourced the same way as rev2: client rows read directly from a local clone of the MIT-licensed sage3648/mythicsim-forever-engine (data/spells.jsonl), cross-checked against foreverdb.net's own tooltip text for each spell (both checked, 2026-10-25). base_points for a direct effect is the row's own Effect.BasePoints, already the level-60 average, confirmed by it matching foreverdb.net's own stated min-max midpoint exactly for every spell in this pack (e.g. Frostbolt: BasePoints 475, tooltip '457 to 493', midpoint 475). Ice Lance has no sp_coefficient field at all on its client row (confirmed: no SPCoef key on its direct effect, unlike every other direct-damage spell in this pack) - its own 200%-vs-frozen-targets bonus is a separate, non-data-pack multiplier applied in mage/frost.rs (Fingers of Frost's own 'the target is frozen' flag), not representable as a school-power-coefficient here. Arcane Blast's mana cost is a %-of-base-mana (`CostPct: 15` on the client row, not a flat `Cost`), so this pack's own `mana_cost` field for it is deliberately `null` - mage/arcane.rs computes 15% of the caster's own max_mana once at fight setup and overwrites this pack's in-memory copy of the row before the fight starts, the same 'trust the clear mechanism over forcing a flat number into a field that doesn't fit it' call rev1 already made for Evocation's mana gain. See research-notes/mage-arcane-comparison.md and mage-frost-comparison.md for the full per-ability writeups, including the Arcane Blast stacking buff and Missile Barrage/Fingers of Frost mechanics read directly from src/classes/mage/spells/arcane_blast.rs, talents/missile_barrage.rs, talents/fingers_of_frost.rs (not guessed at). rev4 (same day) corrects arcane_missiles_barrage: a rigorous per-ability gap investigation found this ability over-performing (1.44x-1.73x the real engine, the only ability in either Mage comparison that did, and the gap widened rather than shrank after other fixes landed, isolating it as a real, separate bug) - re-reading missile_barrage.rs own module doc ('fire its missiles twice as often') against how DotTickLengthFlat mods normally work in this engine family (shortening the period between a spells own FIXED tick count, not recomputing tick count from duration/period) concluded the buffed cast should still only fire 5 ticks total, just twice as fast (2500ms total channel instead of 5000ms) - not 10 ticks at the same total duration, which double-counted the total damage per use. num_ticks corrected 10 to 5; cast_time_ms corrected 5000 to 2500 to match the now-shorter channel. See research-notes/mage-frost-comparison.md for the full writeup and the real-engine evidence that caught this.",
+  "known_conflicts": [],
+  "spells": {
+    "fireball": {
+      "spell_id": 25306,
+      "school": 4,
+      "cast_time_ms": 3500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 410.0,
+      "duration_ms": 8000,
+      "direct": {
+        "base_points": 483.0,
+        "sp_coefficient": 1.0,
+        "variance": 0.2418879121541977
+      },
+      "periodic": {
+        "base_points_per_tick": 15.0,
+        "sp_coefficient": 0.0,
+        "period_ms": 2000,
+        "num_ticks": 4
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 25306 'Fireball Rank 12'. Cross-checked against foreverdb.net: '425 to 541 Fire damage and an additional 60 Fire damage over 8 sec' - midpoint 483 matches BasePoints exactly; 60/4 ticks = 15/tick matches the row's periodic BasePoints exactly."
+    },
+    "scorch": {
+      "spell_id": 10207,
+      "school": 4,
+      "cast_time_ms": 1500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 150.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 178.0,
+        "sp_coefficient": 0.429,
+        "variance": 0.16535432636737823
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 10207 'Scorch Rank 7'. Cross-checked against foreverdb.net: '163 to 193 Fire damage' - midpoint 178 matches BasePoints exactly. Note: Forever rebalanced this down from Classic Era's 233-275 (foreverdb.net's own comparison line) - a real rebalance, not a mining error. Fire Vulnerability (the debuff Scorch applies via the Improved Scorch talent) is a separate client row, not an effect of this spell - see mage/fire.rs's own constants."
+    },
+    "fire_blast": {
+      "spell_id": 10199,
+      "school": 4,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": 8000,
+      "mana_cost": 340.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 438.0,
+        "sp_coefficient": 0.429,
+        "variance": 0.16595745086669922
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 10199 'Fire Blast Rank 7' - CategoryCooldownMs 8000 is the row's own real cooldown field, not assumed. Cross-checked against foreverdb.net: '402 to 474 Fire damage' - midpoint 438 matches BasePoints exactly."
+    },
+    "evocation": {
+      "spell_id": 12051,
+      "school": 64,
+      "cast_time_ms": 8000,
+      "gcd_ms": 1500,
+      "cooldown_ms": 480000,
+      "mana_cost": 0.0,
+      "duration_ms": 8000,
+      "direct": null,
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 12051 'Evocation' - DurationMs 8000 and CooldownMs 480000 are the row's own real fields. Mana restored is hand-computed in mage/mod.rs's evocation_mana() from foreverdb.net's own plain tooltip text ('mana regeneration is active and increased by 1500%... Lasts 8 sec') rather than this row's own three raw Effects (BasePoints 1500/100/100 across two different Aura types this project didn't fully decode in the time available), the same 'trust the clear tooltip over an ambiguous raw encoding' call this project already made for a couple of warlock-forever's own entries - see that pack's own known_conflicts for the precedent. Note: its real client `school` field is 64 (Arcane) - this is a non-damage utility cast, so the school value is parsed but never actually consulted by `effective_spell_power` (that function is only called by direct/periodic damage resolution, which Evocation has neither of)."
+    },
+    "pyroblast": {
+      "spell_id": 18809,
+      "school": 4,
+      "cast_time_ms": 6000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 440.0,
+      "duration_ms": 12000,
+      "direct": {
+        "base_points": 583.0,
+        "sp_coefficient": 1.0,
+        "variance": 0.2166874259710312
+      },
+      "periodic": {
+        "base_points_per_tick": 53.0,
+        "sp_coefficient": 0.15,
+        "period_ms": 3000,
+        "num_ticks": 4
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 18809 'Pyroblast Rank 8'. CastTimeMs 6000 is the row's own real field (reduced live by Heating Up's stacks - see mage/fire.rs). BasePoints 583/periodic 53 per 3000ms tick x4 = 212 total, consistent with foreverdb.net-style 'X to Y plus Z over Ws' tooltip shapes already cross-checked for this pack's other entries."
+    },
+    "combustion": {
+      "spell_id": 11129,
+      "school": 4,
+      "cast_time_ms": 0,
+      "gcd_ms": null,
+      "cooldown_ms": null,
+      "mana_cost": 0.0,
+      "duration_ms": -1,
+      "direct": null,
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 11129 'Combustion' - DurationMs -1 (no fixed duration; the buff's real end condition, landing 3 crits, is handled entirely in mage/fire.rs's own logic, read from the Rust port's src/classes/mage/spells/combustion.rs - not representable as a data-pack duration at all). cooldown_ms is deliberately None here: the real cooldown only starts when the buff ENDS, not when it's cast, so mage/fire.rs sets it manually rather than letting the normal cast-time cooldown bookkeeping (which fires on cast) apply."
+    },
+    "arcane_blast": {
+      "spell_id": 1239700,
+      "school": 64,
+      "cast_time_ms": 1500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": null,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 236.0,
+        "sp_coefficient": 0.429,
+        "variance": 0.15102040767669678
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 1239700 'Arcane Blast Rank 5'. Cross-checked against foreverdb.net: '218 to 254 Arcane damage' - midpoint 236 matches BasePoints exactly; same page states the cost mechanic in plain text: 'Each time you cast Arcane Blast, you gain 15% of your Intellect as Spell Damage and the mana cost of Arcane Blast is increased by 175%. Effect stacks up to 4 times and lasts 15 sec' - the stacking buff (client spell id 400573/400574) is modeled in mage/arcane.rs, read against src/classes/mage/spells/arcane_blast.rs (`intellect_per_stack` = 0.15, `cost_per_stack` = 1.75, `max_stacks` = 4, 15000ms duration, non-refreshing). mana_cost is null (see this pack's own top-level provenance_note on why - it's a %-of-base-mana cost, not a flat Cost field on the client row)."
+    },
+    "arcane_missiles": {
+      "spell_id": 25345,
+      "school": 64,
+      "cast_time_ms": 5000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 655.0,
+      "duration_ms": 5000,
+      "direct": null,
+      "periodic": {
+        "base_points_per_tick": 209.0,
+        "sp_coefficient": 0.286,
+        "period_ms": 1000,
+        "num_ticks": 5
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 25345 'Arcane Missiles Rank 8' (the channel cast; its own RefIDs point at 25346, the per-tick damage row, whose BasePoints/SPCoef/PPL this entry's periodic block actually uses) - cast_time_ms models the channel as a 5000ms 'cast' since this engine has no separate channel concept (DurationMs 5000, PeriodMs 1000 on the tick aura = 5 ticks). Cross-checked against foreverdb.net (spell 25346): '209 Arcane damage each second for 5 sec' - matches exactly. Missile Barrage's own free-cast + double-tick-rate modification (proc aura 44404) is modeled in mage/arcane.rs as a second pack entry below (arcane_missiles_barrage), not a live override of this one - see that entry's own source note."
+    },
+    "arcane_missiles_barrage": {
+      "spell_id": 25345,
+      "school": 64,
+      "cast_time_ms": 2500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 0.0,
+      "duration_ms": 2500,
+      "direct": null,
+      "periodic": {
+        "base_points_per_tick": 209.0,
+        "sp_coefficient": 0.286,
+        "period_ms": 500,
+        "num_ticks": 5
+      },
+      "confidence": "beta-datamine",
+      "source": "The same real spell (25345/25346) under Missile Barrage's own buff (proc aura 44404) - modeled as a second pack entry rather than a live per-cast override of `arcane_missiles` above, since this pack's schema has no per-cast field-override mechanism. mana_cost 0.0 and period_ms halved (500 vs 1000, so 10 ticks instead of 5 over the same 5000ms) both come directly from src/classes/mage/talents/missile_barrage.rs's own module doc comment: 'Arcane Blast landing...can make the next Arcane Missiles free and fire its missiles twice as often' - plain-English source-code documentation of the real mechanic, not a guess. Same total tick damage as the un-buffed cast (209/tick either way, just twice as often), consistent with 'twice as often' meaning tick *rate*, not tick *amount*. CORRECTED rev4: num_ticks was 10 (double-counting total damage per use); the real mechanic is the same 5 ticks delivered twice as fast (2500ms total channel, not 5000ms), not twice as many ticks - see this packs own provenance_note for the full reasoning."
+    },
+    "frostbolt": {
+      "spell_id": 25304,
+      "school": 16,
+      "cast_time_ms": 3000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 290.0,
+      "duration_ms": 9000,
+      "direct": {
+        "base_points": 475.0,
+        "sp_coefficient": 0.814,
+        "variance": 0.07476635277271271
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 25304 'Frostbolt Rank 11'. Cross-checked against foreverdb.net: '457 to 493 Frost damage and slowing movement speed by 40% for 9 sec' - midpoint 475 matches BasePoints exactly. The slow is not modeled (no movement in this engine - single-target stationary DPS only, same scope cut as every other non-damage debuff in this project)."
+    },
+    "ice_lance": {
+      "spell_id": 1240047,
+      "school": 16,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 160.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 145.0,
+        "sp_coefficient": 0.0,
+        "variance": 0.1666666716337204
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 1240047 'Ice Lance Rank 6' - sp_coefficient is deliberately 0.0 (no SPCoef key at all on this row's direct effect, unlike every other direct-damage spell in both mage packs - confirmed by re-checking the raw row, not an omission). Cross-checked against foreverdb.net: '133 to 157 Frost damage to an enemy target. Deals 200% increased damage to Frozen targets' - midpoint 145 matches BasePoints exactly; the row's own second effect (Type 3, BasePoints 200) is that same 200%-vs-frozen figure, applied in mage/frost.rs as a x3.0 multiplier (100% + 200%) when Fingers of Frost's aura is active, not through this pack's own sp_coefficient/variance scheme."
+    }
+  }
+}

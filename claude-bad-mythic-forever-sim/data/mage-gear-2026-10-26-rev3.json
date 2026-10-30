@@ -1,0 +1,554 @@
+{
+  "schema_version": 1,
+  "pack_version": "mage-gear-2026-10-26-rev3",
+  "client_build_reference": "1.60.1.70425 (via sage3648/mythicsim-forever-engine)",
+  "generated": "2026-10-25",
+  "provenance_note": "rev2 adds the Arcane Mage and Frost Mage 'builder starter' reference builds (items/enchants from the same MIT-licensed sage3648/mythicsim-forever-engine repository's data/items.jsonl, same method as rev1 - see that version's own provenance_note). 9 new items (11782, 11822, 13964, 17713, 18338, 18350, 18396, 22408 plus the already-fire-build-sourced ones reused below) were mined for these two builds; no new enchants were needed - both builds reuse the same 4 enchant IDs (1509/1891/1883/851) the Fire build already has. Both new builds share 9 of their 15 equipped items with the Fire build exactly (same head/neck/wrist/hands/waist/legs/finger1/off_hand pieces - caster gear all three specs can equally equip), differing only in shoulder/back/feet/finger2/main_hand/ranged, confirmed by re-fetching both request JSON files directly, 2026-10-25, and finding their `equipment` blocks differ from Fire's build in exactly those 6 slots.",
+  "known_conflicts": [],
+  "unimplemented_but_parsed": [
+    "Same four items as warlock-gear's own rev3 field (pseudo_stats, random suffixes, item set bonuses, item_effects) - not re-audited for this specific Mage gear set; Robe of the Archmage (14152) does have a nonzero rand_prop_points (45) the same as warlock-gear's own flagged items, inert for the same reason (no suffix chosen in this real fixture). Mind Carver (18396) has a real `item_effects` proc (Carved Mind, buff 1302342, 5 stacks max) not modeled here, same category of cut."
+  ],
+  "rating_conversions": {
+    "spell_hit_rating_per_percent": 10.0,
+    "melee_hit_rating_per_percent": 10.0,
+    "spell_crit_rating_per_percent": 14.0,
+    "melee_crit_rating_per_percent": 14.0,
+    "spell_haste_rating_per_percent": 10.0,
+    "_source": "src/prepare/character.rs constants + src/mechanics/haste.rs (SPELL_HASTE_RATING_PER_PERCENT_TIMES_100=1000.0, i.e. 10 rating/1%, derived not copy-pasted).",
+    "_unify_gear_hit_and_crit": "Forever's own rule (forever_rules.go unifyGearHitAndCrit, read via src/prepare/items.rs): a gear set's melee and spell hit ratings are summed into one percent and reapplied to BOTH; same for crit. gear.rs implements this - a caster's gear-granted melee hit/crit (from an off-type item) genuinely does count as spell hit/crit here, it isn't a mining error."
+  },
+  "intellect_to_spell_crit_percent": 0.0168,
+  "race_base_stats": {
+    "RaceGnome": {
+      "Intellect": 128,
+      "Spirit": 120,
+      "Stamina": 44,
+      "Mana": 1213,
+      "SpellCritPercent": 0.2
+    },
+    "RaceHuman": {
+      "Intellect": 125,
+      "Spirit": 120,
+      "Stamina": 45,
+      "Mana": 1213,
+      "SpellCritPercent": 0.2
+    },
+    "RaceOrc": {
+      "Intellect": 122,
+      "Spirit": 123,
+      "Stamina": 47,
+      "Mana": 1213,
+      "SpellCritPercent": 0.2
+    },
+    "RaceTroll": {
+      "Intellect": 121,
+      "Spirit": 121,
+      "Stamina": 46,
+      "Mana": 1213,
+      "SpellCritPercent": 0.2
+    },
+    "RaceUndead": {
+      "Intellect": 123,
+      "Spirit": 125,
+      "Stamina": 46,
+      "Mana": 1213,
+      "SpellCritPercent": 0.2
+    }
+  },
+  "items": {
+    "22267": {
+      "name": "Spellweaver's Turban",
+      "slot": "head",
+      "stats": {
+        "Intellect": 9,
+        "SpellDamage": 36,
+        "SpellHitRating": 10,
+        "HealingPower": 36
+      }
+    },
+    "22403": {
+      "name": "Nacreous Shell Necklace",
+      "slot": "neck",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "HealingPower": 9
+      }
+    },
+    "18497": {
+      "name": "Sublime Wristguards",
+      "slot": "wrist",
+      "stats": {
+        "Stamina": 6,
+        "Intellect": 10,
+        "SpellDamage": 12,
+        "Spirit": 6,
+        "HealingPower": 12
+      }
+    },
+    "14146": {
+      "name": "Gloves of Spell Mastery",
+      "slot": "hands",
+      "stats": {
+        "Intellect": 10,
+        "SpellDamage": 9,
+        "MeleeCritRating": 28,
+        "HealingPower": 9
+      }
+    },
+    "11662": {
+      "name": "Ban'thok Sash",
+      "slot": "waist",
+      "stats": {
+        "Stamina": 10,
+        "Intellect": 11,
+        "SpellDamage": 12,
+        "SpellHitRating": 10,
+        "HealingPower": 12
+      }
+    },
+    "13170": {
+      "name": "Skyshroud Leggings",
+      "slot": "legs",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 34,
+        "HealingPower": 34
+      }
+    },
+    "22433": {
+      "name": "Don Mauricio's Band of Domination",
+      "slot": "finger1",
+      "stats": {
+        "Stamina": 5,
+        "SpellDamage": 11,
+        "SpellCritRating": 14,
+        "HealingPower": 11
+      }
+    },
+    "22329": {
+      "name": "Scepter of Interminable Focus",
+      "slot": "off_hand",
+      "stats": {
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "SpellCritRating": 14,
+        "HealingPower": 9
+      }
+    },
+    "18720": {
+      "name": "Shroud of the Nathrezim",
+      "slot": "shoulder",
+      "stats": {
+        "Intellect": 16,
+        "SpellDamage": 7,
+        "Spirit": 8,
+        "MeleeCritRating": 14,
+        "HealingPower": 7
+      }
+    },
+    "18496": {
+      "name": "Heliotrope Cloak",
+      "slot": "back",
+      "stats": {
+        "Intellect": 10,
+        "SpellCritRating": 14
+      }
+    },
+    "14152": {
+      "name": "Robe of the Archmage",
+      "slot": "chest",
+      "stats": {
+        "Intellect": 12,
+        "SpellDamage": 40,
+        "MeleeCritRating": 14,
+        "HealingPower": 40
+      }
+    },
+    "13369": {
+      "name": "Fire Striders",
+      "slot": "feet",
+      "stats": {
+        "FireDamage": 29,
+        "Spirit": 5
+      }
+    },
+    "12926": {
+      "name": "Flaming Band",
+      "slot": "finger2",
+      "stats": {
+        "FireDamage": 24
+      }
+    },
+    "22266": {
+      "name": "Flarethorn",
+      "slot": "main_hand",
+      "stats": {
+        "Intellect": 5,
+        "FireDamage": 17
+      }
+    },
+    "11748": {
+      "name": "Pyric Caduceus",
+      "slot": "ranged",
+      "stats": {
+        "FireDamage": 13,
+        "Spirit": 3
+      }
+    },
+    "11782": {
+      "name": "Boreal Mantle",
+      "slot": "shoulder",
+      "stats": {
+        "Stamina": 5,
+        "Intellect": 8,
+        "FrostDamage": 29
+      }
+    },
+    "11822": {
+      "name": "Omnicast Boots",
+      "slot": "feet",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 12,
+        "SpellDamage": 20,
+        "HealingPower": 20
+      }
+    },
+    "13964": {
+      "name": "Witchblade",
+      "slot": "main_hand",
+      "stats": {
+        "Intellect": 8,
+        "SpellDamage": 14,
+        "HealingPower": 14
+      }
+    },
+    "17713": {
+      "name": "Blackstone Ring",
+      "slot": "finger2",
+      "stats": {
+        "Stamina": 6,
+        "MeleeHitRating": 10
+      }
+    },
+    "18338": {
+      "name": "Wand of Arcane Potency",
+      "slot": "ranged",
+      "stats": {
+        "ArcaneDamage": 16
+      }
+    },
+    "18350": {
+      "name": "Amplifying Cloak",
+      "slot": "back",
+      "stats": {
+        "SpellDamage": 18,
+        "HealingPower": 18
+      }
+    },
+    "18396": {
+      "name": "Mind Carver",
+      "slot": "main_hand",
+      "stats": {
+        "Intellect": 8,
+        "SpellDamage": 12,
+        "HealingPower": 12
+      }
+    },
+    "18681": {
+      "name": "Burial Shawl",
+      "slot": "shoulder",
+      "stats": {
+        "Intellect": 16,
+        "SpellDamage": 20,
+        "HealingPower": 20
+      }
+    },
+    "22408": {
+      "name": "Ritssyn's Wand of Bad Mojo",
+      "slot": "ranged",
+      "stats": {
+        "Stamina": 4,
+        "SpellDamage": 11,
+        "HealingPower": 11
+      }
+    }
+  },
+  "enchants": {
+    "1509": {
+      "name": "Lesser Arcanum of Voracity",
+      "stats": {
+        "Intellect": 8
+      }
+    },
+    "1891": {
+      "name": "Enchant Chest - Greater Stats",
+      "stats": {
+        "Stamina": 4,
+        "Intellect": 4,
+        "Spirit": 4
+      }
+    },
+    "1883": {
+      "name": "Enchant Bracer - Greater Intellect",
+      "stats": {
+        "Intellect": 7
+      }
+    },
+    "851": {
+      "name": "Enchant Bracer - Spirit",
+      "stats": {
+        "Spirit": 5
+      }
+    }
+  },
+  "example_builds": {
+    "fire_mage_starter_undead": {
+      "_source": "validation/2026-10-04-builder-starters/fire-mage--undead.request.json (mythicsim-forever-engine) - a real 'builder starter', part of the same 166-case Go/Rust cross-check corpus the warlock-gear pack's own example builds come from. Used to begin this project's Mage support, 2026-10-25.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 18720,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18496,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14152,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 14146,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 13369,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 12926,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 22266,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 11748,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    },
+    "arcane_mage_starter_undead": {
+      "_source": "validation/2026-10-04-builder-starters/arcane-mage--undead.request.json (mythicsim-forever-engine), re-fetched directly 2026-10-25 while beginning Arcane Mage support.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 18681,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14152,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 14146,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 11822,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 17713,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 13964,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 18338,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    },
+    "frost_mage_starter_undead": {
+      "_source": "validation/2026-10-04-builder-starters/frost-mage--undead.request.json (mythicsim-forever-engine), re-fetched directly 2026-10-25 while beginning Frost Mage support.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 11782,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14152,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 14146,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 11822,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 17713,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 18396,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 22408,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    }
+  }
+}

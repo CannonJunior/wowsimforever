@@ -1,0 +1,441 @@
+{
+  "pack_version": "priest-gear-2026-10-26-rev2",
+  "intellect_to_spell_crit_percent": 0.0168,
+  "race_base_stats": {
+    "RaceDwarf": {
+      "Intellect": 119,
+      "Spirit": 124,
+      "Stamina": 53,
+      "Mana": 1376,
+      "SpellCritPercent": 0.8
+    },
+    "RaceGnome": {
+      "Intellect": 123,
+      "Spirit": 125,
+      "Stamina": 49,
+      "Mana": 1376,
+      "SpellCritPercent": 0.8
+    },
+    "RaceHuman": {
+      "Intellect": 120,
+      "Spirit": 125,
+      "Stamina": 50,
+      "Mana": 1376,
+      "SpellCritPercent": 0.8
+    },
+    "RaceNightElf": {
+      "Intellect": 120,
+      "Spirit": 125,
+      "Stamina": 49,
+      "Mana": 1376,
+      "SpellCritPercent": 0.8
+    },
+    "RaceTroll": {
+      "Intellect": 116,
+      "Spirit": 126,
+      "Stamina": 51,
+      "Mana": 1376,
+      "SpellCritPercent": 0.8
+    },
+    "RaceUndead": {
+      "Intellect": 118,
+      "Spirit": 130,
+      "Stamina": 51,
+      "Mana": 1376,
+      "SpellCritPercent": 0.8
+    }
+  },
+  "items": {
+    "22267": {
+      "name": "Spellweaver's Turban",
+      "slot": "head",
+      "stats": {
+        "Intellect": 9,
+        "SpellDamage": 36,
+        "SpellHitRating": 10,
+        "HealingPower": 36
+      }
+    },
+    "18350": {
+      "name": "Amplifying Cloak",
+      "slot": "back",
+      "stats": {
+        "SpellDamage": 18,
+        "HealingPower": 18
+      }
+    },
+    "18497": {
+      "name": "Sublime Wristguards",
+      "slot": "wrist",
+      "stats": {
+        "Stamina": 6,
+        "Intellect": 10,
+        "SpellDamage": 12,
+        "Spirit": 6,
+        "HealingPower": 12
+      }
+    },
+    "11662": {
+      "name": "Ban'thok Sash",
+      "slot": "waist",
+      "stats": {
+        "Stamina": 10,
+        "Intellect": 11,
+        "SpellDamage": 12,
+        "SpellHitRating": 10,
+        "HealingPower": 12
+      }
+    },
+    "13170": {
+      "name": "Skyshroud Leggings",
+      "slot": "legs",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 34,
+        "HealingPower": 34
+      }
+    },
+    "22433": {
+      "name": "Don Mauricio's Band of Domination",
+      "slot": "finger1",
+      "stats": {
+        "Stamina": 5,
+        "SpellDamage": 11,
+        "SpellCritRating": 14,
+        "HealingPower": 11
+      }
+    },
+    "22329": {
+      "name": "Scepter of Interminable Focus",
+      "slot": "off_hand",
+      "stats": {
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "SpellCritRating": 14,
+        "HealingPower": 9
+      }
+    },
+    "18681": {
+      "name": "Burial Shawl",
+      "slot": "shoulder",
+      "stats": {
+        "Intellect": 16,
+        "SpellDamage": 20,
+        "HealingPower": 20
+      }
+    },
+    "11822": {
+      "name": "Omnicast Boots",
+      "slot": "feet",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 12,
+        "SpellDamage": 20,
+        "HealingPower": 20
+      }
+    },
+    "13964": {
+      "name": "Witchblade",
+      "slot": "main_hand",
+      "stats": {
+        "Intellect": 8,
+        "SpellDamage": 14,
+        "HealingPower": 14
+      }
+    },
+    "14146": {
+      "name": "Gloves of Spell Mastery",
+      "slot": "hands",
+      "stats": {
+        "Intellect": 10,
+        "SpellDamage": 9,
+        "MeleeCritRating": 28,
+        "HealingPower": 9
+      }
+    },
+    "22403": {
+      "name": "Nacreous Shell Necklace",
+      "slot": "neck",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "HealingPower": 9
+      }
+    },
+    "10038": {
+      "name": "Stormcloth Shoulders",
+      "slot": "shoulder",
+      "stats": {
+        "Stamina": 10,
+        "SpellDamage": 7,
+        "HealingPower": 22
+      }
+    },
+    "11824": {
+      "name": "Cyclopean Band",
+      "slot": "finger2",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 7,
+        "SpellDamage": 9,
+        "Spirit": 4,
+        "HealingPower": 9
+      }
+    },
+    "13253": {
+      "name": "Hands of Power",
+      "slot": "hands",
+      "stats": {
+        "Intellect": 6,
+        "SpellDamage": 26,
+        "Spirit": 6,
+        "HealingPower": 26
+      }
+    },
+    "13349": {
+      "name": "Scepter of the Unholy",
+      "slot": "main_hand",
+      "stats": {
+        "Stamina": 5,
+        "ShadowDamage": 19
+      }
+    },
+    "13396": {
+      "name": "Skul's Ghastly Touch",
+      "slot": "ranged",
+      "stats": {
+        "ShadowDamage": 14
+      }
+    },
+    "13938": {
+      "name": "Bonecreeper Stylus",
+      "slot": "ranged",
+      "stats": {
+        "Intellect": 4,
+        "SpellDamage": 11,
+        "HealingPower": 11
+      }
+    },
+    "14136": {
+      "name": "Robe of Winter Night",
+      "slot": "chest",
+      "stats": {
+        "Intellect": 12,
+        "FrostDamage": 40,
+        "ShadowDamage": 40
+      }
+    },
+    "18385": {
+      "name": "Robe of Everlasting Night",
+      "slot": "chest",
+      "stats": {
+        "Stamina": 11,
+        "Intellect": 13,
+        "SpellDamage": 27,
+        "Spirit": 5,
+        "HealingPower": 27
+      }
+    },
+    "18691": {
+      "name": "Dark Advisor's Pendant",
+      "slot": "neck",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 7,
+        "ShadowDamage": 20
+      }
+    },
+    "18735": {
+      "name": "Maleki's Footwraps",
+      "slot": "feet",
+      "stats": {
+        "Stamina": 9,
+        "Intellect": 9,
+        "ShadowDamage": 27
+      }
+    },
+    "22253": {
+      "name": "Tome of the Lost",
+      "slot": "off_hand",
+      "stats": {
+        "Stamina": 6,
+        "Intellect": 7,
+        "SpellDamage": 18,
+        "HealingPower": 18
+      }
+    }
+  },
+  "enchants": {
+    "1509": {
+      "name": "Lesser Arcanum of Voracity",
+      "stats": {
+        "Intellect": 8
+      }
+    },
+    "1891": {
+      "name": "Enchant Chest - Greater Stats",
+      "stats": {
+        "Stamina": 4,
+        "Intellect": 4,
+        "Spirit": 4
+      }
+    },
+    "1883": {
+      "name": "Enchant Bracer - Greater Intellect",
+      "stats": {
+        "Intellect": 7
+      }
+    },
+    "851": {
+      "name": "Enchant Bracer - Spirit",
+      "stats": {
+        "Spirit": 5
+      }
+    }
+  },
+  "example_builds": {
+    "shadow_priest_starter_undead": {
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "slot": "head",
+          "enchant": 1509
+        },
+        {
+          "item": 18691,
+          "slot": "neck"
+        },
+        {
+          "item": 10038,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "slot": "back"
+        },
+        {
+          "item": 14136,
+          "slot": "chest",
+          "enchant": 1891
+        },
+        {
+          "item": 18497,
+          "slot": "wrist",
+          "enchant": 1883
+        },
+        {
+          "item": 14146,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "slot": "legs",
+          "enchant": 1509
+        },
+        {
+          "item": 18735,
+          "slot": "feet",
+          "enchant": 851
+        },
+        {
+          "item": 22433,
+          "slot": "finger1"
+        },
+        {
+          "item": 11824,
+          "slot": "finger2"
+        },
+        {
+          "item": 13349,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13396,
+          "slot": "ranged"
+        }
+      ]
+    },
+    "smite_priest_starter_undead": {
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "slot": "head",
+          "enchant": 1509
+        },
+        {
+          "item": 22403,
+          "slot": "neck"
+        },
+        {
+          "item": 18681,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "slot": "back"
+        },
+        {
+          "item": 18385,
+          "slot": "chest",
+          "enchant": 1891
+        },
+        {
+          "item": 18497,
+          "slot": "wrist",
+          "enchant": 1883
+        },
+        {
+          "item": 13253,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "slot": "legs",
+          "enchant": 1509
+        },
+        {
+          "item": 11822,
+          "slot": "feet",
+          "enchant": 851
+        },
+        {
+          "item": 22433,
+          "slot": "finger1"
+        },
+        {
+          "item": 11824,
+          "slot": "finger2"
+        },
+        {
+          "item": 13964,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22253,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13938,
+          "slot": "ranged"
+        }
+      ]
+    }
+  }
+}

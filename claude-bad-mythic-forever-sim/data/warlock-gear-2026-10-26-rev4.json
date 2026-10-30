@@ -1,0 +1,580 @@
+{
+  "schema_version": 1,
+  "pack_version": "warlock-gear-2026-10-26-rev4",
+  "client_build_reference": "1.60.1.70425 (via sage3648/mythicsim-forever-engine)",
+  "generated": "2026-10-24",
+  "provenance_note": "Mined from the same MIT-licensed sage3648/mythicsim-forever-engine repository as the spell data pack. Items/enchants: data/items.jsonl and data/enchants.jsonl (the real client item database - this engine's gems.jsonl is empty; Forever's own item.rs explicitly refuses an equipped gem since 'the database has none of' - gems are genuinely not modeled in the source engine itself, not a gap in this mining pass). Rating-to-percent conversions: src/prepare/character.rs's constants module (exact values, not estimated). Haste: src/mechanics/haste.rs's cast_speed formula. Race base stats and the Warlock Intellect-to-crit conversion: data/go-tables.json (itself mined from the Go reference engine's core.BaseStats and crit-per-int tables). known_conflicts and unimplemented_but_parsed below record what this pack carries but this engine does not yet apply.",
+  "known_conflicts": [],
+  "unimplemented_but_parsed": [
+    "pseudo_stats (an alternate percentage-based stat representation some items/enchants carry instead of a flat rating, confirmed present on 23 rows of the source engine's full data/items.jsonl) and item set bonuses (set_id/set_name, present on 10038 Stormcloth Shoulders among this pack's own mined items - part of the 6-piece 'Stormcloth Regalia' set, confirmed by re-fetching data/items.jsonl directly on 2026-10-24 and grepping for set_id=1972) are real client-data concepts this mining pass's flattening step (name/slot/stats only) drops before they ever reach this JSON - not something gear.rs fails to parse, something the pack itself never carries. Checked and confirmed inert for every item/build in this pack specifically: none of the 17 mined items carry a nonzero pseudo_stat, and no example build here equips more than one Stormcloth piece (10038 alone, never with any of its five set-mates: 10010/10011/10020/10032/10039), so no set bonus is actually live to silently drop. Would need re-mining with the flattening step changed to carry these through, not a gear.rs fix, if a future item/build needs them.",
+    "random_suffix / rand_prop_points (\"of the Whatever\" randomly-enchanted items, i.e. a non-zero `scaling_options[*].rand_prop_points` in the source `data/items.jsonl`): three of this pack's 17 mined items have it (10038 Stormcloth Shoulders: 15, 14153 Robe of the Void: 45, 14146 Gloves of Spell Mastery: 34, re-confirmed directly against the source JSONL on 2026-10-24) but none of the real 'builder starter' request fixtures this pack's example builds are taken from ever actually chose a suffix for them, so it's currently inert, not silently wrong - but ItemRow has no field for it at all, so a future item that DOES need a chosen suffix can't be represented without a gear.rs/ItemRow change.",
+    "item_effects (on-equip procs and on-use trinket effects): only one of this pack's 17 mined items has any (14153 Robe of the Void: a 'Heal Pet' on-use effect, buff_id 18386, 600s cooldown - re-confirmed directly against the source JSONL on 2026-10-24) and it's a pet-health utility effect with no damage component, outside this engine's DPS-only scope regardless (there's no pet-health mechanic to heal). No damage proc is silently dropped by any item in this pack today, but ItemRow still has no field for item_effects at all, so a future item with a real damage proc would need one added, not just populated.",
+    "ShadowDamage/FireDamage and Intellect-to-mana, both listed here as unimplemented in this pack's rev2: both were actually implemented in gear.rs's rev2-era code (bonus_shadow_power/bonus_fire_power split, and the -280 + 15/Intellect mana formula from wowsims/forever's sim/core/mana.go) - this field just wasn't updated to say so at the time. Corrected in rev3; see gear.rs's own module doc for the current, accurate list of what is and isn't modeled."
+  ],
+  "rating_conversions": {
+    "spell_hit_rating_per_percent": 10.0,
+    "melee_hit_rating_per_percent": 10.0,
+    "spell_crit_rating_per_percent": 14.0,
+    "melee_crit_rating_per_percent": 14.0,
+    "spell_haste_rating_per_percent": 10.0,
+    "_source": "src/prepare/character.rs constants + src/mechanics/haste.rs (SPELL_HASTE_RATING_PER_PERCENT_TIMES_100=1000.0, i.e. 10 rating/1%, derived not copy-pasted).",
+    "_unify_gear_hit_and_crit": "Forever's own rule (forever_rules.go unifyGearHitAndCrit, read via src/prepare/items.rs): a gear set's melee and spell hit ratings are summed into one percent and reapplied to BOTH; same for crit. gear.rs implements this - a caster's gear-granted melee hit/crit (from an off-type item) genuinely does count as spell hit/crit here, it isn't a mining error."
+  },
+  "intellect_to_spell_crit_percent": 0.0165,
+  "race_base_stats": {
+    "RaceGnome": {
+      "Intellect": 113,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 115,
+      "Stamina": 64
+    },
+    "RaceHuman": {
+      "Intellect": 110,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 115,
+      "Stamina": 65
+    },
+    "RaceOrc": {
+      "Intellect": 107,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 118,
+      "Stamina": 67
+    },
+    "RaceTroll": {
+      "Intellect": 106,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 116,
+      "Stamina": 66
+    },
+    "RaceUndead": {
+      "Intellect": 108,
+      "Mana": 1373,
+      "SpellCritPercent": 1.7,
+      "Spirit": 120,
+      "Stamina": 66
+    }
+  },
+  "items": {
+    "22267": {
+      "name": "Spellweaver's Turban",
+      "slot": "head",
+      "stats": {
+        "Intellect": 9,
+        "SpellDamage": 36,
+        "SpellHitRating": 10,
+        "HealingPower": 36
+      }
+    },
+    "22403": {
+      "name": "Nacreous Shell Necklace",
+      "slot": "neck",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "HealingPower": 9
+      }
+    },
+    "10038": {
+      "name": "Stormcloth Shoulders",
+      "slot": "shoulder",
+      "stats": {
+        "Stamina": 10,
+        "SpellDamage": 7,
+        "HealingPower": 22
+      }
+    },
+    "18350": {
+      "name": "Amplifying Cloak",
+      "slot": "back",
+      "stats": {
+        "SpellDamage": 18,
+        "HealingPower": 18
+      }
+    },
+    "14153": {
+      "name": "Robe of the Void",
+      "slot": "chest",
+      "stats": {
+        "Stamina": 10,
+        "Intellect": 9,
+        "SpellDamage": 46,
+        "HealingPower": 46
+      }
+    },
+    "18497": {
+      "name": "Sublime Wristguards",
+      "slot": "wrist",
+      "stats": {
+        "Stamina": 6,
+        "Intellect": 10,
+        "SpellDamage": 12,
+        "Spirit": 6,
+        "HealingPower": 12
+      }
+    },
+    "13253": {
+      "name": "Hands of Power",
+      "slot": "hands",
+      "stats": {
+        "Intellect": 6,
+        "SpellDamage": 26,
+        "Spirit": 6,
+        "HealingPower": 26
+      }
+    },
+    "11662": {
+      "name": "Ban'thok Sash",
+      "slot": "waist",
+      "stats": {
+        "Stamina": 10,
+        "Intellect": 11,
+        "SpellDamage": 12,
+        "SpellHitRating": 10,
+        "HealingPower": 12
+      }
+    },
+    "13170": {
+      "name": "Skyshroud Leggings",
+      "slot": "legs",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 8,
+        "SpellDamage": 34,
+        "HealingPower": 34
+      }
+    },
+    "18735": {
+      "name": "Maleki's Footwraps",
+      "slot": "feet",
+      "stats": {
+        "Stamina": 9,
+        "Intellect": 9,
+        "ShadowDamage": 27
+      }
+    },
+    "22433": {
+      "name": "Don Mauricio's Band of Domination",
+      "slot": "finger1",
+      "stats": {
+        "Stamina": 5,
+        "SpellDamage": 11,
+        "SpellCritRating": 14,
+        "HealingPower": 11
+      }
+    },
+    "17713": {
+      "name": "Blackstone Ring",
+      "slot": "finger2",
+      "stats": {
+        "Stamina": 6,
+        "MeleeHitRating": 10
+      }
+    },
+    "18372": {
+      "name": "Blade of the New Moon",
+      "slot": "main_hand",
+      "stats": {
+        "Stamina": 5,
+        "ShadowDamage": 19
+      }
+    },
+    "22329": {
+      "name": "Scepter of Interminable Focus",
+      "slot": "off_hand",
+      "stats": {
+        "SpellDamage": 9,
+        "SpellHitRating": 10,
+        "SpellCritRating": 14,
+        "HealingPower": 9
+      }
+    },
+    "13396": {
+      "name": "Skul's Ghastly Touch",
+      "slot": "ranged",
+      "stats": {
+        "ShadowDamage": 14
+      }
+    },
+    "11824": {
+      "name": "Cyclopean Band",
+      "slot": "finger2",
+      "stats": {
+        "Stamina": 8,
+        "Intellect": 7,
+        "SpellDamage": 9,
+        "Spirit": 4,
+        "HealingPower": 9
+      }
+    },
+    "14146": {
+      "name": "Gloves of Spell Mastery",
+      "slot": "hands",
+      "stats": {
+        "Intellect": 10,
+        "SpellDamage": 9,
+        "MeleeCritRating": 28,
+        "HealingPower": 9
+      }
+    }
+  },
+  "enchants": {
+    "1509": {
+      "name": "Lesser Arcanum of Voracity",
+      "stats": {
+        "Intellect": 8
+      }
+    },
+    "1891": {
+      "name": "Enchant Chest - Greater Stats",
+      "stats": {
+        "Stamina": 4,
+        "Intellect": 4,
+        "Spirit": 4
+      }
+    },
+    "1883": {
+      "name": "Enchant Bracer - Greater Intellect",
+      "stats": {
+        "Intellect": 7
+      }
+    },
+    "851": {
+      "name": "Enchant Bracer - Spirit",
+      "stats": {
+        "Spirit": 5
+      }
+    }
+  },
+  "example_builds": {
+    "destruction_reference": {
+      "_source": "validation/2026-10-06-warlock-multi-target-census/bases/2-targets/destruction-warlock.request.json's equipment list - a real fixture build, not hand-assembled.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 10038,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14153,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 13253,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 18735,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 17713,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 18372,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13396,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    },
+    "affliction_starter_undead": {
+      "_source": "validation/2026-10-04-builder-starters/affliction-warlock--undead.request.json (mythicsim-forever-engine) - a real 'builder starter' (default UI build for a fresh character), part of validation/2026-10-04-builder-starters.json's 166-case Go/Rust cross-check corpus (all matched). Used for the 2026-10-24 mythicsim.com DPS comparison - see research-notes/sources.md.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 10038,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14153,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 13253,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 18735,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 11824,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 18372,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13396,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    },
+    "demonology_starter_undead": {
+      "_source": "validation/2026-10-04-builder-starters/demonology-warlock--undead.request.json (mythicsim-forever-engine) - a real 'builder starter' (default UI build for a fresh character), part of validation/2026-10-04-builder-starters.json's 166-case Go/Rust cross-check corpus (all matched). Used for the 2026-10-24 mythicsim.com DPS comparison - see research-notes/sources.md.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 10038,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14153,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 14146,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 18735,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 17713,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 18372,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13396,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    },
+    "destruction_starter_undead": {
+      "_source": "validation/2026-10-04-builder-starters/destruction-warlock--undead.request.json (mythicsim-forever-engine) - a real 'builder starter' (default UI build for a fresh character), part of validation/2026-10-04-builder-starters.json's 166-case Go/Rust cross-check corpus (all matched). Used for the 2026-10-24 mythicsim.com DPS comparison - see research-notes/sources.md.",
+      "race": "RaceUndead",
+      "equipment": [
+        {
+          "item": 22267,
+          "enchant": 1509,
+          "slot": "head"
+        },
+        {
+          "item": 22403,
+          "enchant": null,
+          "slot": "neck"
+        },
+        {
+          "item": 10038,
+          "enchant": null,
+          "slot": "shoulder"
+        },
+        {
+          "item": 18350,
+          "enchant": null,
+          "slot": "back"
+        },
+        {
+          "item": 14153,
+          "enchant": 1891,
+          "slot": "chest"
+        },
+        {
+          "item": 18497,
+          "enchant": 1883,
+          "slot": "wrist"
+        },
+        {
+          "item": 13253,
+          "enchant": null,
+          "slot": "hands"
+        },
+        {
+          "item": 11662,
+          "enchant": null,
+          "slot": "waist"
+        },
+        {
+          "item": 13170,
+          "enchant": 1509,
+          "slot": "legs"
+        },
+        {
+          "item": 18735,
+          "enchant": 851,
+          "slot": "feet"
+        },
+        {
+          "item": 22433,
+          "enchant": null,
+          "slot": "finger1"
+        },
+        {
+          "item": 17713,
+          "enchant": null,
+          "slot": "finger2"
+        },
+        {
+          "item": 18372,
+          "enchant": null,
+          "slot": "main_hand"
+        },
+        {
+          "item": 22329,
+          "enchant": null,
+          "slot": "off_hand"
+        },
+        {
+          "item": 13396,
+          "enchant": null,
+          "slot": "ranged"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "pack_version": "priest-forever-2026-10-26-rev2",
+  "client_build_reference": "1.60.1.70425",
+  "generated": "2026-10-25",
+  "provenance_note": "Every entry sourced directly from sage3648/mythicsim-forever-engine's own data/spells.jsonl (MIT-licensed, the same clone this project's Mage/Warlock packs used) - no WebSearch/community-reported values in this pack, only beta-datamine. See each spell's own `source` field for the exact spell id/rank and what's deliberately not modeled (backfire damage, player healing).",
+  "known_conflicts": [],
+  "spells": {
+    "mind_blast": {
+      "spell_id": 10947,
+      "school": 32,
+      "cast_time_ms": 1500,
+      "gcd_ms": 1500,
+      "cooldown_ms": 8000,
+      "mana_cost": 350.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 485.0,
+        "sp_coefficient": 0.42899999022483826,
+        "variance": 0.05415860563516617
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 10947 'Mind Blast Rank 9'."
+    },
+    "shadow_word_pain": {
+      "spell_id": 10894,
+      "school": 32,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 470.0,
+      "duration_ms": 18000,
+      "direct": null,
+      "periodic": {
+        "base_points_per_tick": 127.0,
+        "sp_coefficient": 0.20000000298023224,
+        "period_ms": 3000,
+        "num_ticks": 6
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 10894 'Shadow Word: Pain Rank 8' - DurationMs 18000 / PeriodMs 3000 = 6 ticks (Improved Shadow Word: Pain, +1 tick/point, not talented in the real reference build this pack's own example build mirrors - see priest/shadow.rs)."
+    },
+    "devouring_plague": {
+      "spell_id": 19280,
+      "school": 32,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": 24000,
+      "mana_cost": 985.0,
+      "duration_ms": 24000,
+      "direct": null,
+      "periodic": {
+        "base_points_per_tick": 106.0,
+        "sp_coefficient": 0.10000000149011612,
+        "period_ms": 3000,
+        "num_ticks": 8
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 19280 'Devouring Plague Rank 6' - DurationMs 24000 / PeriodMs 3000 = 8 ticks. The real spell also heals the caster for a share of each tick's damage (`heal_metrics_tag` in the real engine's own prepared output) - not modeled, this project doesn't track player health/healing (DPS-only scope, same as every other class)."
+    },
+    "shadow_word_death": {
+      "spell_id": 1309636,
+      "school": 32,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": 18000,
+      "mana_cost": 340.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 448.0,
+        "sp_coefficient": 0.42899999022483826,
+        "variance": 0.060499999672174454
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 1309636 'Shadow Word: Death Rank 4'. The real spell also backfires on the caster for its own damage if the target survives (classic SW:Death's drawback) - not modeled, this project tracks no player health pool for any class. Early Demise's own +30% crit bonus (this build's own real `prepared` output gives `early_demise_crit: 30.0` directly) is modeled as a static crit bonus in priest/shadow.rs, not decoded from a talent curve."
+    },
+    "mind_flay": {
+      "spell_id": 18807,
+      "school": 32,
+      "cast_time_ms": 3000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 205.0,
+      "duration_ms": 3000,
+      "direct": null,
+      "periodic": {
+        "base_points_per_tick": 130.0,
+        "sp_coefficient": 0.1669999957084656,
+        "period_ms": 1000,
+        "num_ticks": 3
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 18807 'Mind Flay Rank 6' - modeled as a 3000ms channel (DurationMs 3000, PeriodMs 1000 = 3 ticks), same `cast_time_ms`-as-channel-length convention `mage/arcane.rs`'s own `arcane_missiles` entry already uses. The real priority list clips this channel short (interrupts after 2 ticks) whenever Mind Blast comes off cooldown mid-channel - not modeled; this engine always resolves the full 3-tick channel, a known simplification (see priest/shadow.rs's own module docs)."
+    },
+    "smite": {
+      "spell_id": 10934,
+      "school": 2,
+      "cast_time_ms": 2500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 280.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 170.0,
+        "sp_coefficient": 0.7139999866485596,
+        "variance": 0.1119592934846878
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 10934 'Smite Rank 8'."
+    },
+    "smite_downrank": {
+      "spell_id": 591,
+      "school": 2,
+      "cast_time_ms": 2000,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 30.0,
+      "duration_ms": null,
+      "direct": {
+        "base_points": 27.0,
+        "sp_coefficient": 0.5709999799728394,
+        "variance": 0.2142857164144516
+      },
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 591 'Smite Rank 2' - the real priority list's own mana-saving downrank filler, cast instead of the full-rank Smite once the mana-pacing check (`currentManaPercent >= remainingTimePercent * 0.9`) fails - see priest/smite.rs."
+    },
+    "holy_fire": {
+      "spell_id": 15261,
+      "school": 2,
+      "cast_time_ms": 3500,
+      "gcd_ms": 1500,
+      "cooldown_ms": null,
+      "mana_cost": 255.0,
+      "duration_ms": 10000,
+      "direct": {
+        "base_points": 208.0,
+        "sp_coefficient": 0.75,
+        "variance": 0.23383083939552307
+      },
+      "periodic": {
+        "base_points_per_tick": 15.0,
+        "sp_coefficient": 0.05000000074505806,
+        "period_ms": 2000,
+        "num_ticks": 5
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 15261 'Holy Fire Rank 8' - direct hit (BasePoints 208, SPCoef 0.75) plus its own dot (BasePoints 15/tick, SPCoef 0.05, PeriodMs 2000, DurationMs 10000 = 5 ticks), same direct+dot shape as Fire Mage's Pyroblast."
+    },
+    "penance": {
+      "spell_id": 1316995,
+      "school": 2,
+      "cast_time_ms": 2000,
+      "gcd_ms": 1500,
+      "cooldown_ms": 12000,
+      "mana_cost": 385.0,
+      "duration_ms": 2000,
+      "direct": null,
+      "periodic": {
+        "base_points_per_tick": 92.0,
+        "sp_coefficient": 0.1899999976158142,
+        "period_ms": 1000,
+        "num_ticks": 3
+      },
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 1316995 'Penance Rank 4' (the channel cast) and its own damage-bolt sub-spell 1316993 (BasePoints 92, SPCoef 0.19). num_ticks corrected 2026-10-26 from 2 to 3: `src/classes/priest/spells/holy.rs::apply_penance`'s own doc comment says the landing roll 'starts the channel and fires the first bolt at once (Go Dot.TickOnce, an extra tick that leaves the tick count alone)' - confirmed directly against a real debug log showing three bolts (t=0.00, 1.00, 2.00), not two, for one cast. The channel's own real duration (2000ms, confirmed by the log's own 'Aura faded' timestamp) is kept unchanged in this pack's own cast_time_ms; this engine's own dot-scheduling convention (first tick at now+period_ms, never at offset 0) means the 3rd tick lands at offset 3000ms here instead of the real 2000ms - a minor timing approximation, not a total-damage one, since aggregate DPS only depends on tick count and total elapsed time, not exact intra-channel timing."
+    },
+    "inner_focus": {
+      "spell_id": 14751,
+      "school": 1,
+      "cast_time_ms": 0,
+      "gcd_ms": 1500,
+      "cooldown_ms": 180000,
+      "mana_cost": 0.0,
+      "duration_ms": null,
+      "direct": null,
+      "periodic": null,
+      "confidence": "beta-datamine",
+      "source": "sage3648/mythicsim-forever-engine (MIT), data/spells.jsonl, spell id 14751 'Inner Focus' - a utility cast (no direct/periodic effect of its own; its real effect, -100% cost and +25% crit on the *next* qualifying cast, is applied in priest/shadow.rs and priest/smite.rs as a timed self-buff, not through this row). No GCDMs field on the real row at all - treated as the implicit 1500ms GCD default (same convention this project's own data packs already use for every other spell missing that field), not as explicitly off-GCD (which the real row would show as `GCDMs: 0`, confirmed absent here)."
+    }
+  }
+}
